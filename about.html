@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thống Kê Color Kingdom</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb; --secondary: #60a5fa; --success: #00b09b; --danger: #ff5f6d;
+            --bg-color: #f8faff; --text-color: #2d3436;
+            --red-team: #e53935; --blue-team: #1e88e5;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Be Vietnam Pro', sans-serif; }
+        
+        body { background: var(--bg-color); color: var(--text-color); padding: 20px; }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* HEADER */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .btn-back { text-decoration: none; color: #666; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
+        .btn-back:hover { color: var(--primary); transform: translateX(-5px); }
+        
+        /* CARDS */
+        .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
+        .stat-num { font-size: 2rem; font-weight: 800; color: var(--primary); display: block; margin-top: 10px; }
+        
+        /* FILTER & ACTIONS */
+        .action-bar { background: white; padding: 20px; border-radius: 15px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        select { padding: 10px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; flex: 1; outline: none; }
+        .btn-export { background: #10ac84; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .btn-export:hover { background: #0d8a6a; }
+
+        /* TABLE */
+        .table-container { overflow-x: auto; background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th, td { padding: 15px 20px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f1f5f9; font-weight: 700; color: #475569; }
+        tr:hover { background: #f8faff; }
+        
+        .score-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; }
+        .win-red { background: #ffebee; color: var(--red-team); border: 1px solid var(--red-team); }
+        .win-blue { background: #e3f2fd; color: var(--blue-team); border: 1px solid var(--blue-team); }
+        .draw { background: #eceff1; color: #607d8b; }
+
+        .btn-del { color: var(--danger); background: none; border: none; cursor: pointer; font-size: 1.1rem; transition: 0.2s; }
+        .btn-del:hover { transform: scale(1.2); }
+
+        #loading { text-align: center; padding: 50px; font-size: 1.2rem; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <a href="main.html" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Về Trang Chủ</a>
+        <h2 style="color: var(--primary);">Lịch Sử Đấu Trường</h2>
+    </div>
+
+    <div class="stats-summary">
+        <div class="stat-card">
+            <i class="fa-solid fa-gamepad" style="color: #6c5ce7; font-size: 20px;"></i>
+            <span>Tổng trận đấu</span>
+            <span class="stat-num" id="total-plays">0</span>
+        </div>
+        <div class="stat-card">
+            <i class="fa-solid fa-flag" style="color: var(--red-team); font-size: 20px;"></i>
+            <span>Red Thắng</span>
+            <span class="stat-num" id="red-wins" style="color: var(--red-team)">0</span>
+        </div>
+        <div class="stat-card">
+            <i class="fa-solid fa-flag" style="color: var(--blue-team); font-size: 20px;"></i>
+            <span>Blue Thắng</span>
+            <span class="stat-num" id="blue-wins" style="color: var(--blue-team)">0</span>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <i class="fa-solid fa-filter" style="color: #666;"></i>
+        <select id="quiz-filter" onchange="filterData()">
+            <option value="all">Tất cả bản đồ</option>
+        </select>
+        <button class="btn-export" onclick="exportToExcel()">
+            <i class="fa-solid fa-file-excel"></i> Xuất Excel
+        </button>
+    </div>
+
+    <div class="table-container">
+        <div id="loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải dữ liệu...</div>
+        <table id="results-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Bản đồ / Bộ câu hỏi</th>
+                    <th>Người chiến thắng</th>
+                    <th>Tỉ số (Red - Blue)</th>
+                    <th>Thời gian</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = { apiKey: "AIzaSyCd7vYlpSMcAlgwOPNBMyOhM0QIuzE-628", projectId: "thaococo-70cc7" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let allResults = [];
+
+    // Tự động tải khi vào trang
+    window.onload = loadStats;
+
+    async function loadStats() {
+        try {
+            // Lấy dữ liệu từ collection 'game_results'
+            // Lưu ý: Game code trước đó không lưu ownerId, nên ta lấy toàn bộ (limit 100)
+            // Nếu bạn muốn lấy riêng user, cần update code game để lưu uid
+            const snapshot = await db.collection('game_results')
+                .limit(100) 
+                .get(); 
+
+            allResults = [];
+            if (snapshot.empty) {
+                document.getElementById('loading').innerHTML = "Chưa có trận đấu nào.";
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                let data = doc.data();
+                data.id = doc.id;
+                // Fallback nếu thiếu ngày
+                data.playedAt = data.playedAt || new Date().toISOString(); 
+                allResults.push(data);
+            });
+
+            // Sắp xếp client-side (Mới nhất lên đầu)
+            allResults.sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
+
+            // Tạo Filter (Lọc theo tên Map/Kit Title)
+            const uniqueTitles = [...new Set(allResults.map(item => item.kitTitle || "Không tên"))];
+            const select = document.getElementById('quiz-filter');
+            uniqueTitles.forEach(title => {
+                const opt = document.createElement('option');
+                opt.value = title;
+                opt.innerText = title;
+                select.appendChild(opt);
+            });
+
+            renderTable(allResults);
+            updateSummary(allResults);
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('results-table').style.display = 'table';
+
+        } catch (error) {
+            console.error(error);
+            document.getElementById('loading').innerText = "Lỗi tải dữ liệu (Cần tạo Index trên Firebase nếu sort).";
+            // Nếu lỗi Index, thử load không sort từ server
+            if(error.message.includes("index")) {
+               // Fallback logic could go here
+            }
+        }
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '';
+        
+        data.forEach(item => {
+            const tr = document.createElement('tr');
+            
+            // Format ngày giờ
+            const date = new Date(item.playedAt).toLocaleString('vi-VN');
+            
+            // Xác định Badge
+            let badgeClass = 'draw';
+            let winnerText = 'Hòa';
+            if(item.winner === 'RED') { badgeClass = 'win-red'; winnerText = 'RED TEAM'; }
+            else if(item.winner === 'BLUE') { badgeClass = 'win-blue'; winnerText = 'BLUE TEAM'; }
+            
+            tr.innerHTML = `
+                <td style="font-weight:600; color:var(--text-color)">${item.kitTitle || 'Trận đấu tùy chọn'}</td>
+                <td><span class="score-badge ${badgeClass}">${winnerText}</span></td>
+                <td style="font-weight:700;">
+                    <span style="color:var(--red-team)">${item.redScore}</span> 
+                    - 
+                    <span style="color:var(--blue-team)">${item.blueScore}</span>
+                </td>
+                <td style="color:#666; font-size:0.9rem;">${date}</td>
+                <td>
+                    <button class="btn-del" onclick="deleteResult('${item.id}')" title="Xóa">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function updateSummary(data) {
+        // 1. Tổng lượt chơi
+        document.getElementById('total-plays').innerText = data.length;
+
+        // 2. Thống kê thắng thua
+        let redWins = data.filter(d => d.winner === 'RED').length;
+        let blueWins = data.filter(d => d.winner === 'BLUE').length;
+
+        document.getElementById('red-wins').innerText = redWins;
+        document.getElementById('blue-wins').innerText = blueWins;
+    }
+
+    function filterData() {
+        const selected = document.getElementById('quiz-filter').value;
+        if (selected === 'all') {
+            renderTable(allResults);
+        } else {
+            const filtered = allResults.filter(item => (item.kitTitle || "Không tên") === selected);
+            renderTable(filtered);
+        }
+    }
+
+    async function deleteResult(docId) {
+        if(confirm("Xóa lịch sử trận đấu này?")) {
+            try {
+                await db.collection('game_results').doc(docId).delete();
+                // Reload lại trang cho nhanh
+                location.reload();
+            } catch (e) {
+                alert("Lỗi xóa: " + e.message);
+            }
+        }
+    }
+
+    function exportToExcel() {
+        const selected = document.getElementById('quiz-filter').value;
+        let dataToExport = selected === 'all' ? allResults : allResults.filter(item => (item.kitTitle || "Không tên") === selected);
+
+        if(dataToExport.length === 0) { alert("Không có dữ liệu!"); return; }
+
+        let csvContent = "data:text/csv;charset=utf-8,";
+        // Header CSV
+        csvContent += "Ten Ban Do,Nguoi Thang,Diem Red,Diem Blue,Ngay Gio\r\n";
+
+        dataToExport.forEach(row => {
+            const date = new Date(row.playedAt).toLocaleString('vi-VN').replace(',', '');
+            const cleanTitle = (row.kitTitle || "Map").replace(/,/g, " -"); 
+            
+            csvContent += `${cleanTitle},${row.winner},${row.redScore},${row.blueScore},${date}\r\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "lich_su_color_kingdom.csv");
+        document.body.appendChild(link);
+        link.click();
+    }
+</script>
+
+</body>
+</html>

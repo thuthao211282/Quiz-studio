@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Studio Ultra Pro | Fixed Layout</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #007bff; --secondary: #00b4ff; --success: #28a745; --danger: #dc3545;
+            --glass-bg: rgba(255, 255, 255, 0.7); 
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --text-dark: #1a1a1a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Be Vietnam Pro', sans-serif; }
+        
+        body {
+            min-height: 100vh;
+            background: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1600&q=80') no-repeat center center fixed;
+            background-size: cover;
+            display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px;
+        }
+
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background: rgba(0, 15, 40, 0.45); backdrop-filter: blur(8px); z-index: -1;
+        }
+
+        .container { width: 100%; max-width: 1000px; z-index: 1; }
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--glass-bg); padding: 25px 30px; border-radius: 20px;
+            border: 1px solid var(--glass-border); margin-bottom: 25px;
+            backdrop-filter: blur(15px); box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 24px; padding: 25px; margin-bottom: 25px;
+            backdrop-filter: blur(15px); box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+.card:hover {
+   /* 1. Đẩy khung lên trên 5px tạo cảm giác bay lên */
+    transform: translateY(-5px) scale(1.01); 
+    
+    /* 2. Tăng độ đậm của bóng đổ để tạo chiều sâu */
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); 
+    
+    /* 3. Làm sáng nền và viền một chút */
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+        /* Định dạng chung cho Input */
+        input, textarea {
+            width: 100%; padding: 12px; border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.1); 
+            background: rgba(255,255,255,0.7); 
+            color: var(--text-dark); font-size: 15px; outline: none; transition: 0.3s;
+        }
+        input:focus, textarea:focus { background: #fff; border-color: var(--primary); }
+
+        /* --- SỬA LỖI THỤT DÒNG Ở ĐÂY --- */
+        .input-group { 
+            display: flex; 
+            gap: 10px; 
+            align-items: flex-start; /* Canh lề trên */
+            margin-top: 8px; 
+            width: 100%;
+        }
+
+        /* Quan trọng: Input trong group sẽ tự co giãn, không chiếm 100% cứng nữa */
+        .input-group input, 
+        .input-group textarea {
+            flex: 1; 
+            width: auto; 
+        }
+
+        .btn-plus {
+            width: 45px; height: 45px; border-radius: 12px; background: #fff;
+            color: var(--primary); border: 1px solid #ddd; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: 0.3s;
+            flex-shrink: 0; /* Quan trọng: Không cho phép nút bị co lại */
+        }
+        .btn-plus:hover { background: var(--primary); color: #fff; transform: scale(1.05); }
+
+        button {
+            padding: 12px 20px; border-radius: 12px; border: none; cursor: pointer;
+            font-weight: 600; transition: 0.3s; display: flex; align-items: center; gap: 8px;
+            color: white; background: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+
+        .choice-item { display: flex; align-items: center; gap: 10px; margin-top: 15px; }
+        .choice-circle {
+            width: 38px; height: 38px; border-radius: 50%; border: 2px solid #aaa;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; 
+            font-weight: bold; background: #fff; color: #777; transition: 0.2s; flex-shrink: 0;
+        }
+        .choice-item.correct .choice-circle { 
+            background: var(--success); border-color: var(--success); color: white; 
+        }
+
+        /* PANEL REVIEW ĐỒNG BỘ */
+        /* --- CSS CHO PANEL CÂU HỎI --- */
+.preview-card {
+    background: rgba(255, 255, 255, 0.6); /* Nền mờ nhẹ */
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Viền mỏng */
+    border-radius: 16px; /* Bo góc tròn trịa */
+    padding: 20px;
+    margin-bottom: 20px;
+    color: white;
+    
+    /* QUAN TRỌNG: Tạo độ mượt khi thay đổi trạng thái */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    
+    /* Bóng đổ mặc định (nhẹ) */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* --- HIỆU ỨNG KHI HOVER (DI CHUỘT VÀO) --- */
+.preview-card:hover {
+    /* 1. Đẩy khung lên trên 5px tạo cảm giác bay lên */
+    transform: translateY(-5px) scale(1.01); 
+    
+    /* 2. Tăng độ đậm của bóng đổ để tạo chiều sâu */
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); 
+    
+    /* 3. Làm sáng nền và viền một chút */
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+        .preview-q-text { font-size: 1.1rem; font-weight: 700; color: var(--text-dark); margin-bottom: 12px; }
+        
+        .preview-choice-item {
+            background: rgba(255, 255, 255, 0.4); 
+            padding: 10px 15px; border-radius: 10px; font-size: 0.95rem;
+            margin-top: 8px; border: 1px solid rgba(255,255,255,0.3);
+            display: flex; align-items: center; gap: 10px; color: #333;
+        }
+        .preview-choice-item.is-correct { 
+            background: rgba(40, 167, 69, 0.15); 
+            border-color: var(--success); color: var(--success); font-weight: 600; 
+        }
+
+        .media-tag {
+            font-size: 0.75rem; background: var(--primary); color: white; 
+            padding: 3px 10px; border-radius: 6px; margin-top: 5px; display: inline-block;
+        }
+
+        /* Modal */
+        .my-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            display: none; justify-content: center; align-items: center; z-index: 9999;
+            backdrop-filter: blur(8px);
+        }
+        .modal-box {
+            background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 25px; 
+            width: 90%; max-width: 400px; text-align: center;
+        }
+/* Thêm vào trong thẻ <style> */
+.btn-edit-preview {
+    background: var(--primary); /* Màu xanh */
+    color: white;
+    font-size: 12px;
+    padding: 6px 15px;
+    border-radius: 8px;
+    margin-right: 8px; /* Cách nút xóa ra một chút */
+    display: inline-flex; align-items: center; gap: 5px;
+}
+.btn-edit-preview:hover {
+    background: var(--secondary);
+    box-shadow: 0 4px 10px rgba(0,123,255,0.3);
+}
+/* =========================================
+   ANIMATION NÂNG CAO CHO GIAO DIỆN GLASS
+   (Dán đoạn này vào cuối thẻ <style>)
+========================================= */
+
+/* 1. CẤU HÌNH CHUYỂN ĐỘNG MƯỢT (EASING) */
+/* Sử dụng cubic-bezier để tạo cảm giác vật lý, có độ nảy nhẹ */
+* {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* 2. HIỆU ỨNG CHO CÁC KHỐI CARD VÀ HEADER */
+/* Khi di chuột vào, khối kính sẽ nổi lên cao hơn và bóng đổ sâu hơn */
+header:hover, .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    /* Tăng nhẹ độ mờ và độ sáng để tạo cảm giác "đến gần hơn" */
+    backdrop-filter: blur(18px);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+/* 3. HIỆU ỨNG CHO NÚT BẤM CHÍNH (Gradient Buttons) */
+button {
+    position: relative;
+    overflow: hidden; /* Để chứa hiệu ứng ripple nếu cần */
+}
+
+/* Hover: Nổi lên, phóng to nhẹ và phát sáng */
+button:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 10px 25px -5px rgba(0, 123, 255, 0.5); /* Bóng màu xanh */
+}
+
+/* Click (Active): Cảm giác bị nhấn xuống */
+button:active {
+    transform: translateY(-1px) scale(0.98);
+    box-shadow: 0 5px 10px -3px rgba(0, 123, 255, 0.3);
+}
+
+/* 4. HIỆU ỨNG CHO NÚT TRẮNG (Vd: Nút Home) */
+/* Cần ghi đè hiệu ứng bóng của nút chính */
+header button[onclick*="main.html"]:hover,
+#btnToggleManual:hover, 
+#btnToggleManual + button:hover {
+     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+     background: white !important;
+     color: var(--primary) !important;
+}
+
+/* 5. HIỆU ỨNG NÚT DẤU CỘNG (BTN-PLUS) - Rất thú vị! */
+.btn-plus {
+    transition: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); /* Độ nảy mạnh hơn */
+}
+.btn-plus:hover {
+    /* Xoay 90 độ và phóng to khi hover */
+    transform: rotate(90deg) scale(1.1);
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 0 20px rgba(0, 123, 255, 0.4); /* Phát sáng xung quanh */
+}
+.btn-plus:active {
+    transform: rotate(90deg) scale(0.9); /* Thu nhỏ khi click */
+}
+
+/* 6. HIỆU ỨNG INPUT VÀ TEXTAREA KHI NHẬP LIỆU */
+input:focus, textarea:focus {
+    background: #ffffff !important; /* Trắng hoàn toàn */
+    transform: translateY(-2px); /* Nổi lên nhẹ */
+    border-color: var(--primary);
+    /* Tạo vòng sáng (Focus ring) xung quanh */
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.15);
+}
+
+/* 7. HIỆU ỨNG CHO NÚT CHỌN ĐÁP ÁN (A, B, C, D) */
+.choice-circle {
+    transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+/* Khi chưa chọn mà hover vào */
+.choice-item:not(.correct) .choice-circle:hover {
+    transform: scale(1.15);
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.2);
+}
+/* Khi Click chọn (Hiệu ứng "Pulse" - Nhịp đập) */
+@keyframes pulseSuccess {
+    0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.6); }
+    70% { box-shadow: 0 0 0 12px rgba(40, 167, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+}
+.choice-item.correct .choice-circle {
+    transform: scale(1.05);
+    /* Chạy animation nhịp đập 1 lần khi được chọn */
+    animation: pulseSuccess 0.6s ease-out forwards;
+}
+
+/* 8. HIỆU ỨNG CHO PANEL REVIEW (Danh sách xem trước) */
+.preview-card:hover {
+    transform: translateY(-5px) scale(1.01);
+    background: rgba(255, 255, 255, 0.75); /* Sáng hơn một chút */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    /* Đường viền bên trái dày hơn và sáng hơn */
+    border-left-width: 8px; 
+    border-left-color: var(--secondary); 
+}
+
+/* Hiệu ứng cho các đáp án trong preview khi hover */
+.preview-choice-item:hover {
+    background: rgba(255, 255, 255, 0.6);
+    transform: translateX(5px); /* Dịch sang phải nhẹ */
+}
+
+/* 9. HIỆU ỨNG MODAL XUẤT HIỆN (Mượt mà hơn) */
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* 1. Định nghĩa chuyển động bay từ dưới lên */
+@keyframes dashboardSlideUp {
+    0% {
+        opacity: 0;
+        transform: translateY(40px) scale(0.98);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+.modal-box {
+    /* Áp dụng animation khi modal hiện lên */
+    animation: modalFadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.container {
+    /* Chạy animation trong 0.8s với nhịp điệu mượt (cubic-bezier) */
+    animation: dashboardSlideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+header {
+    animation: dashboardSlideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: 0.1s; /* Chậm 0.1s */
+    opacity: 0; /* Ẩn đi chờ animation chạy */
+    animation-fill-mode: forwards; /* Giữ trạng thái cuối cùng */
+}
+
+/* Card thiết lập hiện sau */
+.card {
+    animation: dashboardSlideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: 0.2s; /* Chậm 0.2s */
+    opacity: 0;
+    animation-fill-mode: forwards;
+}
+
+/* Danh sách review hiện sau cùng */
+#previewList {
+    animation: dashboardSlideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: 0.3s;
+    opacity: 0;
+    animation-fill-mode: forwards;
+}
+    </style>
+</head>
+<body>
+
+<div id="mediaModal" class="my-modal">
+    <div class="modal-box">
+        <h3 style="margin-bottom: 15px;">Chèn Hình ảnh / Video</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div style="background:#f0f0f0; padding:20px; border-radius:15px; cursor:pointer;" onclick="openMediaInput('link')">
+                <i class="fa-solid fa-link" style="font-size: 24px; color: var(--primary);"></i>
+                <div style="margin-top:10px; font-weight:600">Dán Link</div>
+            </div>
+            <div style="background:#f0f0f0; padding:20px; border-radius:15px; cursor:pointer;" onclick="openMediaInput('file')">
+                <i class="fa-solid fa-file-arrow-up" style="font-size: 24px; color: var(--primary);"></i>
+                <div style="margin-top:10px; font-weight:600">Tải File</div>
+            </div>
+        </div>
+        <button onclick="closeModal('mediaModal')" style="margin-top: 20px; width: 100%; justify-content: center; background: #ddd; color: #333;">Đóng</button>
+    </div>
+</div>
+
+<div id="linkModal" class="my-modal">
+    <div class="modal-box">
+        <h3>Nhập URL Media</h3>
+        <input type="text" id="inputUrlMedia" placeholder="https://..." style="margin: 20px 0;">
+        <div style="display: flex; gap: 10px;">
+            <button id="btnConfirmLink" style="flex: 1; justify-content: center;">OK</button>
+            <button onclick="closeModal('linkModal')" style="background: #ddd; color: #333;">Hủy</button>
+        </div>
+    </div>
+</div>
+
+<div id="alertModal" class="my-modal">
+    <div class="modal-box">
+        <i id="alertIcon" class="fa-solid fa-circle-check" style="font-size: 40px; color: var(--success);"></i>
+        <h3 id="alertTitle" style="margin-top: 15px;">Thông báo</h3>
+        <p id="alertMsg" style="margin: 15px 0; color: #555;"></p>
+        <button onclick="closeModal('alertModal')" style="width: 100%; justify-content: center;">Đã hiểu</button>
+    </div>
+</div>
+
+<input type="file" id="hiddenFileInput" hidden accept="image/*,video/*">
+
+<div class="container">
+    <header>
+        <div>
+            <h1 style="color: var(--primary); font-weight: 700;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Quiz Studio Pro
+            </h1>
+            <p><i class="fa-solid fa-circle-user"></i> <span id="userEmail">Loading...</span></p>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button onclick="window.location.href='main.html'" 
+                    style="background: white; color: var(--primary); border: 1px solid #ddd;">
+                <i class="fa-solid fa-house"></i> Trang chủ
+            </button>
+
+            <button id="btnSaveKit">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Lưu bộ kit
+            </button>
+        </div>
+    </header>
+
+    <div class="card">
+        <h3><i class="fa-solid fa-sliders"></i> Thiết lập bộ câu hỏi</h3>
+        <input type="text" id="kitTitle" placeholder="Nhập tiêu đề bộ câu hỏi...">
+        <div style="margin-top: 15px; display: flex; gap: 12px;">
+            <button id="btnToggleManual" style="flex:1; background: #fff; color: #333; border: 1px solid #ddd; box-shadow: none;">
+                <i class="fa-solid fa-pen-nib"></i> Soạn thủ công
+            </button>
+            <button style="flex:1; background: #fff; color: #333; border: 1px solid #ddd; box-shadow: none;">
+                <i class="fa-solid fa-file-import"></i> Nhập từ file
+            </button>
+        </div>
+    </div>
+
+    <div class="card" id="manualArea" style="display: none; border-top: 5px solid var(--primary);">
+        <h3 style="margin-bottom: 15px;">Soạn câu hỏi</h3>
+        
+        <div class="input-group">
+            <textarea id="manualQName" rows="2" placeholder="Nhập câu hỏi..."></textarea>
+            <button class="btn-plus" onclick="triggerMedia('question')"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <div id="mediaTag_question"></div>
+
+        <div id="manualChoices">
+            <div class="choice-item">
+                <div class="choice-circle" data-idx="0">A</div>
+                <div class="input-group" style="width: 100%; margin:0;">
+                    <input type="text" placeholder="Đáp án A">
+                    <button class="btn-plus" onclick="triggerMedia('choice_0')"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+            <div id="mediaTag_choice_0"></div>
+
+            <div class="choice-item">
+                <div class="choice-circle" data-idx="1">B</div>
+                <div class="input-group" style="width: 100%; margin:0;">
+                    <input type="text" placeholder="Đáp án B">
+                    <button class="btn-plus" onclick="triggerMedia('choice_1')"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+            <div id="mediaTag_choice_1"></div>
+
+            <div class="choice-item">
+                <div class="choice-circle" data-idx="2">C</div>
+                <div class="input-group" style="width: 100%; margin:0;">
+                    <input type="text" placeholder="Đáp án C">
+                    <button class="btn-plus" onclick="triggerMedia('choice_2')"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+            <div id="mediaTag_choice_2"></div>
+
+            <div class="choice-item">
+                <div class="choice-circle" data-idx="3">D</div>
+                <div class="input-group" style="width: 100%; margin:0;">
+                    <input type="text" placeholder="Đáp án D">
+                    <button class="btn-plus" onclick="triggerMedia('choice_3')"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+            <div id="mediaTag_choice_3"></div>
+        </div>
+
+        <button id="btnAddQuestion" style="width: 100%; margin-top: 25px; justify-content: center; padding: 15px;">
+            <i class="fa-solid fa-plus-circle"></i> Thêm vào Preview
+        </button>
+    </div>
+
+    <div id="previewList"></div>
+</div>
+
+<script>
+    // --- CẤU HÌNH FIREBASE ---
+    const firebaseConfig = { apiKey: "AIzaSyCd7vYlpSMcAlgwOPNBMyOhM0QIuzE-628", authDomain: "thaococo-70cc7.firebaseapp.com", projectId: "thaococo-70cc7" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+    
+    // --- KHAI BÁO BIẾN ---
+    let workingQuestions = [];
+    let selectedIndices = [];
+    let currentTarget = null;
+    let tempMediaData = {};
+    let editingIndex = -1; // -1: Thêm mới, >=0: Đang sửa câu hỏi số mấy
+
+    // --- CÁC HÀM TIỆN ÍCH UI (POPUP, MODAL) ---
+    function myAlert(msg, type = 'info') {
+        const modal = document.getElementById('alertModal');
+        const icon = document.getElementById('alertIcon');
+        document.getElementById('alertMsg').innerText = msg;
+        if(type === 'error') {
+            icon.className = "fa-solid fa-circle-xmark"; icon.style.color = "var(--danger)";
+        } else {
+            icon.className = "fa-solid fa-circle-check"; icon.style.color = "var(--success)";
+        }
+        modal.style.display = 'flex';
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function triggerMedia(target) { currentTarget = target; document.getElementById('mediaModal').style.display = 'flex'; }
+    
+    function openMediaInput(type) {
+        closeModal('mediaModal');
+        if(type === 'link') document.getElementById('linkModal').style.display = 'flex';
+        else document.getElementById('hiddenFileInput').click();
+    }
+
+    // --- XỬ LÝ MEDIA (FILE & LINK) ---
+    document.getElementById('hiddenFileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if(file) {
+            const reader = new FileReader();
+            reader.onload = (event) => saveMediaToTemp(event.target.result, 'file');
+            reader.readAsDataURL(file);
+        }
+    });
+
+    document.getElementById('btnConfirmLink').addEventListener('click', () => {
+        const url = document.getElementById('inputUrlMedia').value.trim();
+        if(url) { saveMediaToTemp(url, 'link'); closeModal('linkModal'); document.getElementById('inputUrlMedia').value = ''; }
+    });
+
+    function saveMediaToTemp(data, type) {
+        tempMediaData[currentTarget] = data;
+        const tag = document.getElementById(`mediaTag_${currentTarget}`);
+        tag.innerHTML = `<span class="media-tag"><i class="fa-solid fa-paperclip"></i> Đã đính kèm</span>`;
+    }
+
+    // --- XỬ LÝ CHỌN ĐÁP ÁN ĐÚNG ---
+    document.querySelectorAll('.choice-circle').forEach(circle => {
+        circle.addEventListener('click', () => {
+            const idx = parseInt(circle.dataset.idx);
+            if(selectedIndices.includes(idx)) {
+                selectedIndices = selectedIndices.filter(i => i !== idx);
+                circle.parentElement.classList.remove('correct');
+            } else {
+                selectedIndices.push(idx);
+                circle.parentElement.classList.add('correct');
+            }
+        });
+    });
+
+    // --- LOGIC THÊM / SỬA CÂU HỎI VÀO DANH SÁCH ---
+    document.getElementById('btnAddQuestion').addEventListener('click', () => {
+        const qName = document.getElementById('manualQName').value.trim();
+        const inputs = document.querySelectorAll('#manualChoices input');
+        const choices = Array.from(inputs).map(i => i.value.trim());
+
+        // Validate
+        if(!qName || choices.some(c => !c) || selectedIndices.length === 0) {
+            myAlert("Vui lòng nhập đủ thông tin và chọn đáp án đúng!", "error");
+            return;
+        }
+
+        // Tạo object câu hỏi
+        const questionObj = {
+            question: qName,
+            qMedia: tempMediaData['question'] || null,
+            choices: choices.map((c, i) => ({ 
+                text: c, 
+                media: tempMediaData[`choice_${i}`] || null 
+            })),
+            correctIndices: [...selectedIndices]
+        };
+
+        if (editingIndex > -1) {
+            // TRƯỜNG HỢP SỬA: Ghi đè
+            workingQuestions[editingIndex] = questionObj;
+            myAlert("Đã cập nhật câu hỏi!");
+        } else {
+            // TRƯỜNG HỢP THÊM MỚI: Push vào cuối
+            workingQuestions.push(questionObj);
+        }
+
+        resetForm(); 
+        renderPreview();
+    });
+
+    function resetForm() {
+        document.getElementById('manualQName').value = '';
+        document.querySelectorAll('#manualChoices input').forEach(i => i.value = '');
+        document.querySelectorAll('.choice-item').forEach(item => item.classList.remove('correct'));
+        document.querySelectorAll('[id^="mediaTag_"]').forEach(t => t.innerHTML = '');
+        selectedIndices = []; 
+        tempMediaData = {};
+        
+        // Reset trạng thái nút về "Thêm mới"
+        editingIndex = -1;
+        const btn = document.getElementById('btnAddQuestion');
+        btn.innerHTML = '<i class="fa-solid fa-plus-circle"></i> Thêm vào Preview';
+        btn.style.background = ""; // Trả về màu mặc định
+    }
+
+    // --- RENDER DANH SÁCH REVIEW ---
+    // --- RENDER DANH SÁCH REVIEW (Đã sửa hiển thị ảnh) ---
+    function renderPreview() {
+        const container = document.getElementById('previewList');
+        container.innerHTML = workingQuestions.length > 0 
+            ? `<h3 style="color:white; margin:20px 0; font-weight:600;">Danh sách xem trước (${workingQuestions.length})</h3>` 
+            : '';
+
+        workingQuestions.forEach((q, i) => {
+            const div = document.createElement('div');
+            div.className = 'preview-card';
+            if(i === editingIndex) div.style.border = "2px solid var(--primary)";
+
+            // 1. Xử lý hiển thị ảnh cho Từng Đáp Án
+            const choicesHtml = q.choices.map((c, idx) => `
+                <div class="preview-choice-item ${q.correctIndices.includes(idx) ? 'is-correct' : ''}">
+                    <div>
+                        <strong>${String.fromCharCode(65 + idx)}.</strong> ${c.text}
+                        ${c.media ? `<img src="${c.media}" style="display: block; margin-top: 5px; max-width: 100px; max-height: 100px; border-radius: 5px; border: 1px solid #ccc;">` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            // 2. Xử lý hiển thị ảnh cho Câu Hỏi
+            const qImageHtml = q.qMedia 
+                ? `<div style="margin-top: 10px; text-align: center;">
+                     <img src="${q.qMedia}" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                   </div>` 
+                : '';
+
+            div.innerHTML = `
+                <div class="preview-q-text">
+                    Câu ${i + 1}: ${q.question}
+                    ${qImageHtml} 
+                </div>
+                
+                <div class="preview-choices">${choicesHtml}</div>
+                
+                <div style="margin-top: 15px; text-align: right;">
+                    <button onclick="editQuestion(${i})" class="btn-edit-preview">
+                        <i class="fa-solid fa-pen"></i> Sửa
+                    </button>
+                    
+                    <button onclick="removeQuestion(${i})" style="background: var(--danger); font-size: 12px; padding: 6px 15px; border-radius: 8px; color:white; display: inline-flex; align-items: center; gap: 5px;">
+                        <i class="fa-solid fa-trash-can"></i> Xóa
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function removeQuestion(idx) {
+        workingQuestions.splice(idx, 1);
+        renderPreview();
+    }
+
+    // --- LOGIC ĐẨY DỮ LIỆU LÊN EDIT FORM ---
+    function editQuestion(idx) {
+        const q = workingQuestions[idx];
+        editingIndex = idx; 
+
+        // 1. Điền text
+        document.getElementById('manualQName').value = q.question;
+        const inputs = document.querySelectorAll('#manualChoices input');
+        q.choices.forEach((c, i) => {
+            if(inputs[i]) inputs[i].value = c.text;
+        });
+
+        // 2. Điền đáp án đúng
+        selectedIndices = [...q.correctIndices];
+        document.querySelectorAll('.choice-circle').forEach(circle => {
+            const cIdx = parseInt(circle.dataset.idx);
+            if (selectedIndices.includes(cIdx)) circle.parentElement.classList.add('correct');
+            else circle.parentElement.classList.remove('correct');
+        });
+
+        // 3. Khôi phục Media
+        tempMediaData = {}; 
+        
+        if(q.qMedia) {
+            tempMediaData['question'] = q.qMedia;
+            document.getElementById('mediaTag_question').innerHTML = `<span class="media-tag"><i class="fa-solid fa-check"></i> Đang có media cũ</span>`;
+        } else {
+            document.getElementById('mediaTag_question').innerHTML = '';
+        }
+
+        q.choices.forEach((c, i) => {
+            const tag = document.getElementById(`mediaTag_choice_${i}`);
+            if(c.media) {
+                tempMediaData[`choice_${i}`] = c.media;
+                tag.innerHTML = `<span class="media-tag"><i class="fa-solid fa-check"></i> Đang có media cũ</span>`;
+            } else {
+                tag.innerHTML = '';
+            }
+        });
+
+        // 4. Đổi giao diện nút bấm
+        const btn = document.getElementById('btnAddQuestion');
+        btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Lưu sửa đổi';
+        btn.style.background = "linear-gradient(135deg, #ff9966, #ff5e62)"; 
+        
+        document.getElementById('manualArea').style.display = 'block';
+        document.getElementById('manualArea').scrollIntoView({ behavior: 'smooth' });
+        renderPreview(); 
+    }
+
+    // --- LOGIC LƯU BỘ KIT (TẠO MỚI HOẶC CẬP NHẬT) ---
+    document.getElementById('btnSaveKit').addEventListener('click', async () => {
+        // 1. KIỂM TRA ĐĂNG NHẬP
+        const user = auth.currentUser;
+        if (!user) {
+            return myAlert("Vui lòng đăng nhập để lưu bài!", "error");
+        }
+
+        // 2. Lấy dữ liệu
+        const title = document.getElementById('kitTitle').value.trim();
+        if(!title || workingQuestions.length === 0) {
+            return myAlert("Thiếu tên bộ hoặc chưa có câu hỏi nào!", "error");
+        }
+        
+        // Kiểm tra chế độ Edit
+        const urlParams = new URLSearchParams(window.location.search);
+        const editId = urlParams.get('edit');
+
+        // Hiệu ứng nút bấm đang lưu
+        const btn = document.getElementById('btnSaveKit');
+        const oldText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
+        btn.disabled = true;
+
+        try {
+            if (editId) {
+                // --- UPDATE BỘ CŨ ---
+                await db.collection('kits').doc(editId).update({
+                    title: title,
+                    questions: workingQuestions,
+                    updatedAt: new Date().toISOString(),
+                    ownerId: user.uid 
+                });
+                
+                myAlert("Cập nhật bộ câu hỏi thành công!");
+                // CHUYỂN TRANG
+                setTimeout(() => { window.location.href = "main.html"; }, 1500);
+
+            } else {
+                // --- TẠO BỘ MỚI ---
+                await db.collection('kits').add({
+                    ownerId: user.uid, 
+                    ownerEmail: user.email, 
+                    title: title,
+                    questions: workingQuestions,
+                    createdAt: new Date().toISOString()
+                });
+
+                myAlert("Đã tạo bộ câu hỏi mới thành công!");
+                
+                // ===> ĐÃ THÊM: CHUYỂN TRANG SAU KHI TẠO MỚI <===
+                setTimeout(() => { window.location.href = "main.html"; }, 1500);
+            }
+        } catch(e) { 
+            console.error(e);
+            myAlert("Lỗi lưu trữ: " + e.message, "error"); 
+            
+            // Trả lại nút bấm nếu lỗi
+            btn.innerHTML = oldText;
+            btn.disabled = false;
+        }
+    });
+
+    // --- AUTH & KHỞI TẠO ---
+    auth.onAuthStateChanged(user => {
+        if(!user) window.location.href = 'login.html';
+        else {
+            if(document.getElementById('userEmail')) {
+                document.getElementById('userEmail').innerText = user.email;
+            }
+        }
+    });
+
+    document.getElementById('btnToggleManual').addEventListener('click', () => {
+        const area = document.getElementById('manualArea');
+        area.style.display = area.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // --- KIỂM TRA CHẾ ĐỘ SỬA (KHI LOAD TRANG) ---
+    const urlParamsNew = new URLSearchParams(window.location.search);
+    const editKitId = urlParamsNew.get('edit');
+
+    if (editKitId) {
+        loadKitToEdit(editKitId);
+    }
+
+    async function loadKitToEdit(id) {
+        try {
+            const doc = await db.collection('kits').doc(id).get();
+            if (!doc.exists) {
+                myAlert("Bộ câu hỏi không tồn tại hoặc đã bị xóa!", "error");
+                return;
+            }
+
+            const data = doc.data();
+            
+            // 1. Điền thông tin
+            document.getElementById('kitTitle').value = data.title;
+            workingQuestions = data.questions || [];
+            
+            // 2. Render
+            renderPreview();
+            
+            // 3. Đổi nút Lưu thành Cập nhật
+            const btnSave = document.getElementById('btnSaveKit');
+            btnSave.innerHTML = '<i class="fa-solid fa-rotate"></i> Cập nhật bộ Kit';
+
+            // 4. Thông báo
+            myAlert("Đã tải dữ liệu bộ: " + data.title);
+
+        } catch (e) {
+            console.error(e);
+            myAlert("Lỗi tải dữ liệu: " + e.message, "error");
+        }
+    }
+</script>
+</body>
+</html>

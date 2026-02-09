@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang Chủ | Quiz Studio Pro</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #60a5fa;
+            --accent: #ff6b6b;
+            --success: #00b09b; 
+            --danger: #ff5f6d;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --text-dark: #2d3436;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Be Vietnam Pro', sans-serif; }
+
+        body {
+            min-height: 100vh;
+            background: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1600&q=80') no-repeat center center fixed;
+            background-size: cover;
+            display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px;
+        }
+
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background: rgba(0, 15, 40, 0.4);
+            backdrop-filter: blur(8px); 
+            z-index: -1;
+        }
+
+        .container { 
+            width: 100%; max-width: 1000px; 
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* HEADER SECTION */
+        .welcome-section { text-align: center; margin-bottom: 40px; }
+        .welcome-section h2 { 
+            font-size: 2.2rem; font-weight: 800; color: #333; margin-bottom: 10px; 
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .welcome-section p { color: #555; font-size: 1.1rem; font-weight: 500; }
+
+        /* DASHBOARD GRID */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px; margin-bottom: 40px;
+        }
+
+        .dashboard a {
+            background: white;
+            color: var(--text-dark);
+            text-decoration: none; padding: 25px;
+            border-radius: 24px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 15px;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative; overflow: hidden;
+        }
+
+        .dashboard a::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            opacity: 0; transition: 0.4s; z-index: 0; border-radius: 24px;
+        }
+
+        .dashboard a:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0, 0.2); }
+        .dashboard a:hover::before { opacity: 0.05; }
+        
+        .dashboard a i { 
+            font-size: 2.8rem; z-index: 1;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            transition: 0.4s;
+        }
+        .dashboard a span { z-index: 1; font-weight: 600; font-size: 1.1rem; }
+        .dashboard a:hover i { transform: scale(1.2) rotate(-10deg); }
+
+        /* SEARCH BAR */
+        .search-container { position: relative; margin-bottom: 25px; }
+        .search-container i {
+            position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+            color: var(--primary); opacity: 0.7;
+        }
+        .search-container input {
+            width: 100%; padding: 16px 16px 16px 55px;
+            border-radius: 18px; border: 2px solid transparent;
+            background: rgba(255,255,255,0.9); font-size: 1rem; outline: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: 0.3s;
+        }
+        .search-container input:focus {
+            background: white; border-color: var(--secondary);
+            box-shadow: 0 5px 20px rgba(143, 148, 251, 0.3);
+        }
+
+        /* --- LIST GAME --- */
+        .kits-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: #333; font-size: 1.2rem; font-weight: 700; }
+        
+        .kit-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: white;
+            border-radius: 18px; padding: 15px 25px; margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border-left: 5px solid transparent; /* Viền ẩn */
+            transition: all 0.3s ease;
+            animation: fadeInStagger 0.5s ease forwards;
+            opacity: 0; transform: translateY(10px);
+        }
+        
+        @keyframes fadeInStagger { to { opacity: 1; transform: translateY(0); } }
+
+        .kit-row:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-left-color: var(--primary);
+        }
+
+        .kit-title { font-weight: 700; font-size: 1.1rem; color: #333; margin-bottom: 6px; }
+        .kit-badge {
+            background: #f0f3f8; color: #555;
+            padding: 4px 10px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 5px; margin-right: 5px;
+        }
+
+        /* --- ACTIONS BUTTONS --- */
+        .kit-actions { display: flex; align-items: center; gap: 10px; }
+        
+        .btn-circle {
+            width: 40px; height: 40px; border-radius: 50%; border: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            background: #f5f5f5; color: #666;
+            text-decoration: none; font-size: 1.1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .btn-settings:hover { 
+            background: #ffc107; color: white; 
+            transform: rotate(90deg);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+        }
+
+        .btn-edit:hover { 
+            background: #2563eb; color: white; 
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-delete:hover { 
+            background: #ff4757; color: white; 
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+        }
+
+        /* --- MODAL ANIMATION & STYLE --- */
+        .my-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            display: none; justify-content: center; align-items: center; z-index: 9999;
+            backdrop-filter: blur(5px);
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        .my-modal.show { display: flex; opacity: 1; }
+        
+        .modal-content {
+            background: white; width: 90%; max-width: 450px;
+            padding: 40px; border-radius: 30px; text-align: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            /* Animation nảy */
+            transform: scale(0.8) translateY(20px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .my-modal.show .modal-content { transform: scale(1) translateY(0); }
+
+        .modal-content h3 { font-size: 1.5rem; margin-bottom: 5px; color: var(--text-dark); }
+        .modal-desc { color: #666; margin-bottom: 25px; font-size: 0.9rem; }
+
+        /* TIME CONTROL STYLE */
+        .time-wrapper {
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+            margin: 30px 0;
+        }
+        .btn-time-adjust {
+            width: 45px; height: 45px; border-radius: 12px; border: none;
+            background: #f1f5f9; color: var(--primary); font-size: 1.2rem; font-weight: 700;
+            cursor: pointer; transition: 0.2s;
+        }
+        .btn-time-adjust:hover { background: var(--primary); color: white; transform: scale(1.1); }
+        
+        .time-display {
+            font-size: 3rem; font-weight: 800; color: var(--text-dark);
+            min-width: 100px; position: relative;
+        }
+        .time-display::after {
+            content: 'PHÚT'; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
+            font-size: 0.7rem; color: #999; font-weight: 600; letter-spacing: 1px;
+        }
+
+        .btn-primary-modal {
+            width: 100%; padding: 15px; border-radius: 15px; border: none;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white; font-weight: 700; cursor: pointer; margin-bottom: 15px;
+            box-shadow: 0 10px 20px rgba(78, 84, 200, 0.3);
+            transition: 0.3s; font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-primary-modal:hover { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(78, 84, 200, 0.4); }
+        
+        .btn-close-modal {
+            background: transparent; border: none; color: #999; cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+        }
+        .btn-close-modal:hover { color: #555; text-decoration: underline; }
+
+        .logout-btn {
+            display: block; margin: 40px auto 0;
+            background: white; border: 2px solid var(--danger); color: var(--danger);
+            padding: 10px 30px; border-radius: 50px; cursor: pointer; font-weight: 700;
+            transition: 0.3s;
+        }
+        .logout-btn:hover { background: var(--danger); color: white; box-shadow: 0 5px 15px rgba(255, 95, 109, 0.4); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="welcome-section">
+        <h2>Xin chào, <span id="displayUsername">...</span>! 👋</h2>
+        <p>Chọn một tác vụ để bắt đầu ngày mới năng suất</p>
+    </div>
+
+    <div class="dashboard">
+        <a href="assignments.html">
+            <i class="fa-solid fa-pen-nib"></i>
+            <span>Soạn câu hỏi</span>
+        </a>
+        <a href="Game.html">
+            <i class="fa-solid fa-gamepad"></i>
+            <span>Vào trò chơi</span>
+        </a>
+        <a href="about.html">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>Xem kết quả</span>
+        </a>
+        <a href="profile.html">
+            <i class="fa-solid fa-user-astronaut"></i>
+            <span>Cá nhân</span>
+        </a>
+    </div>
+
+    <div class="search-container">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="kitSearch" placeholder="Tìm kiếm bộ câu hỏi của bạn...">
+    </div>
+
+    <div class="kits-list">
+        <h3 class="kits-header"><i class="fa-solid fa-folder-open"></i> Thư viện của tôi</h3>
+        <div id="myKits">
+            <div style="text-align: center; color: #666; padding: 20px;">
+                <i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
+</div>
+
+<!-- MODAL SETTING THỜI GIAN -->
+<div id="kitSettingsModal" class="my-modal">
+    <div class="modal-content">
+        <!-- Icon động -->
+        <i class="fa-solid fa-clock fa-shake" style="font-size: 3rem; color: var(--primary); margin-bottom: 15px; --fa-animation-duration: 3s;"></i>
+        
+        <h3>Cấu Hình Trận Đấu</h3>
+        <p class="modal-desc">Thiết lập thời gian cho ván đấu này</p>
+        
+        <div class="time-wrapper">
+            <button class="btn-time-adjust" onclick="adjustTime(-1)"><i class="fa-solid fa-minus"></i></button>
+            <div class="time-display" id="timeValue">5</div>
+            <button class="btn-time-adjust" onclick="adjustTime(1)"><i class="fa-solid fa-plus"></i></button>
+        </div>
+
+        <button class="btn-primary-modal" onclick="hostGame()">
+            <i class="fa-solid fa-rocket"></i> BẮT ĐẦU NGAY
+        </button>
+        
+        <button class="btn-close-modal" onclick="closeModal('kitSettingsModal')">Hủy bỏ</button>
+    </div>
+</div>
+
+<!-- MODAL THÔNG BÁO -->
+<div id="notificationModal" class="my-modal">
+    <div class="modal-content" style="max-width: 350px;">
+        <i id="notifIcon" class="fa-solid fa-circle-check" style="font-size: 3.5rem; color: var(--success); margin-bottom: 20px; display:block;"></i>
+        <h3 id="notifTitle" style="margin-bottom: 10px;">Thành công!</h3>
+        <p id="notifMsg" style="color: #666; margin-bottom: 25px; line-height: 1.5;">Nội dung thông báo...</p>
+        <button class="btn-primary-modal" onclick="closeModal('notificationModal')">Đã hiểu</button>
+    </div>
+</div>
+
+<!-- MODAL XÁC NHẬN XÓA -->
+<div id="confirmModal" class="my-modal">
+    <div class="modal-content" style="max-width: 380px;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 3.5rem; color: var(--danger); margin-bottom: 20px; display:block;"></i>
+        <h3 style="color: var(--danger)">Xóa bộ câu hỏi?</h3>
+        <p style="color: #666; margin-bottom: 30px;">Hành động này không thể hoàn tác. Bạn chắc chắn chứ?</p>
+        <div style="display: flex; gap: 15px;">
+            <button id="btnConfirmDelete" class="btn-primary-modal" style="background: var(--danger); box-shadow: 0 10px 20px rgba(255, 95, 109, 0.3);">Xóa luôn</button>
+            <button class="btn-primary-modal" style="background: #f1f2f6; color: #333; box-shadow: none;" onclick="closeModal('confirmModal')">Giữ lại</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = { apiKey: "AIzaSyCd7vYlpSMcAlgwOPNBMyOhM0QIuzE-628", authDomain: "thaococo-70cc7.firebaseapp.com", projectId: "thaococo-70cc7" };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = null;
+    let currentKitId = null;
+    let deleteTargetId = null;
+    let gameTime = 5; // Mặc định 5 phút
+
+    // --- HÀM XỬ LÝ MODAL ---
+    function openModal(id) {
+        const m = document.getElementById(id);
+        if(m) m.classList.add('show');
+    }
+    function closeModal(id) {
+        const m = document.getElementById(id);
+        if(m) m.classList.remove('show');
+    }
+    
+    function showNotification(msg, type = 'success') {
+        const icon = document.getElementById('notifIcon');
+        const title = document.getElementById('notifTitle');
+        document.getElementById('notifMsg').innerText = msg;
+
+        if(type === 'error') {
+            icon.className = "fa-solid fa-circle-xmark";
+            icon.style.color = "var(--danger)";
+            title.innerText = "Úi, có lỗi!";
+        } else {
+            icon.className = "fa-solid fa-circle-check";
+            icon.style.color = "var(--success)";
+            title.innerText = "Tuyệt vời!";
+        }
+        openModal('notificationModal');
+    }
+
+    // --- LOGIC CHÍNH ---
+    auth.onAuthStateChanged(async user => {
+        if (user) {
+            currentUser = user.uid;
+            
+            let finalName = user.displayName;
+            if (!finalName) {
+                try {
+                    const userDoc = await db.collection('users').doc(currentUser).get();
+                    if (userDoc.exists && userDoc.data().username) {
+                        finalName = userDoc.data().username;
+                    }
+                } catch (e) { console.log("Không lấy được tên từ DB"); }
+            }
+            if (!finalName) finalName = user.email.split('@')[0];
+
+            document.getElementById("displayUsername").textContent = finalName;
+            loadMyKits();
+        } else {
+            window.location.href = "login.html"; 
+        }
+    });
+
+    async function loadMyKits() {
+        const out = document.getElementById('myKits');
+        out.innerHTML = `<div style="text-align: center; color: #666; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu...</div>`;
+
+        try {
+            const snapshot = await db.collection('kits')
+                .where('ownerId', '==', currentUser) 
+                .orderBy('createdAt', 'desc')
+                .get();
+            
+            if (snapshot.empty) { 
+                out.innerHTML = `<div style="text-align:center; padding:30px; opacity:0.6"><img src="https://cdn-icons-png.flaticon.com/512/7486/7486747.png" width="60" style="margin-bottom:10px; filter: grayscale(1);"><br>Chưa có bộ câu hỏi nào.<br>Hãy tạo mới ngay!</div>`; 
+                return; 
+            }
+            
+            out.innerHTML = ""; 
+            let delay = 0;
+
+            snapshot.forEach(doc => {
+                const kit = doc.data();
+                const kitId = doc.id;
+                
+                const div = document.createElement('div');
+                div.className = 'kit-row';
+                div.style.animationDelay = delay + 's';
+                
+                div.innerHTML = `
+                    <div style="flex:1">
+                        <div class="kit-title">${kit.title || "Chưa đặt tên"}</div>
+                        <div style="font-size: 13px; color: #777;">
+                            <span class="kit-badge"><i class="fa-solid fa-layer-group"></i> ${kit.questions ? kit.questions.length : 0} câu</span>
+                             ${kit.assignedCode ? `<span class="kit-badge" style="background:#fff3e0; color:#ef6c00;"><i class="fa-solid fa-key"></i> Code: ${kit.assignedCode}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="kit-actions">
+                        <button onclick="openSettings('${kitId}')" class="btn-circle btn-settings" title="Cấu hình & Chơi">
+                            <i class="fa-solid fa-sliders"></i>
+                        </button>
+
+                        <a href="assignments.html?edit=${kitId}" class="btn-circle btn-edit" title="Sửa nội dung">
+                            <i class="fa-solid fa-pen"></i>
+                        </a>
+
+                        <button onclick="confirmDelete('${kitId}')" class="btn-circle btn-delete" title="Xóa">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                out.appendChild(div);
+                delay += 0.1;
+            });
+
+        } catch (error) {
+            console.error("Lỗi:", error);
+            if (error.code === 'failed-precondition') {
+                 out.innerHTML = `<div style="color:red; text-align:center;">⚠️ <b>LỖI THIẾU INDEX</b><br>Mở Console để tạo index.</div>`;
+            } else {
+                 out.innerHTML = `<div style="color:red">Lỗi: ${error.message}</div>`;
+            }
+        }
+    }
+
+    // Search Filter
+    document.getElementById('kitSearch').addEventListener('input', function(e) {
+        const term = e.target.value.toLowerCase();
+        document.querySelectorAll('.kit-row').forEach(row => {
+            const title = row.querySelector('.kit-title').innerText.toLowerCase();
+            row.style.display = title.includes(term) ? 'flex' : 'none';
+        });
+    });
+
+    // --- LOGIC SETTING THỜI GIAN MỚI ---
+    function openSettings(kitId) {
+        currentKitId = kitId;
+        gameTime = 5; // Reset về 5 phút mặc định
+        updateTimeDisplay();
+        openModal('kitSettingsModal');
+    }
+
+    function adjustTime(amount) {
+        gameTime += amount;
+        if (gameTime < 1) gameTime = 1;
+        if (gameTime > 60) gameTime = 60;
+        updateTimeDisplay();
+    }
+
+    function updateTimeDisplay() {
+        document.getElementById('timeValue').innerText = gameTime;
+    }
+
+    async function hostGame() {
+        const btn = document.querySelector('#kitSettingsModal .btn-primary-modal');
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang khởi tạo...';
+
+        try {
+            // Lưu cấu hình thời gian vào Firestore
+            await db.collection('kits').doc(currentKitId).update({
+                isHosting: true,
+                timeLimit: gameTime, // Lưu trực tiếp timeLimit
+                gameConfig: { // Lưu thêm vào gameConfig để tương thích code cũ nếu cần
+                    timeLimit: gameTime,
+                    startedAt: new Date().toISOString()
+                }
+            });
+            window.location.href = `game.html?id=${currentKitId}&mode=host`;
+        } catch (e) {
+            showNotification("Lỗi khi tạo phòng: " + e.message, "error");
+            btn.innerHTML = originalContent;
+        }
+    }
+
+    // --- XỬ LÝ XÓA ---
+    function confirmDelete(id) {
+        deleteTargetId = id;
+        openModal('confirmModal');
+    }
+
+    document.getElementById('btnConfirmDelete').addEventListener('click', async () => {
+        if(deleteTargetId) {
+            try {
+                await db.collection('kits').doc(deleteTargetId).delete();
+                closeModal('confirmModal');
+                showNotification("Đã xóa bộ câu hỏi thành công.");
+                loadMyKits();
+            } catch(e) {
+                showNotification("Lỗi xóa: " + e.message, "error");
+            }
+            deleteTargetId = null;
+        }
+    });
+
+    function logout() { auth.signOut().then(() => window.location.href = "login.html"); }
+
+    window.onclick = function(e) {
+        if (e.target.classList.contains('my-modal')) {
+            e.target.classList.remove('show');
+        }
+    }
+</script>
+</body>
+</html>

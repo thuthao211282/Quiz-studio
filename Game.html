@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Kingdom | Pentagon Siege</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            /* --- CẤU HÌNH NGŨ GIÁC KHÍT (Dạng Vảy) --- */
+            --hex-width: 90px; 
+            --hex-height: 100px;
+            /* Margin âm lớn để xếp chồng lên nhau như vảy */
+            --hex-margin-top: -35px; 
+            --hex-indent: 45px; /* = 1/2 Width */
+            
+            /* --- MÀU SẮC --- */
+            --grass: #8bc34a;
+            --water: #29b6f6;
+            --forest: #388e3c;
+            --mountain: #546e7a;
+            
+            --red: #e53935;
+            --blue: #1e88e5;
+            --gold: #ffca28;
+            --bg: #102027;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Be Vietnam Pro', sans-serif; }
+
+        body {
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(229, 57, 53, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(30, 136, 229, 0.1) 0%, transparent 40%);
+            color: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- TOAST --- */
+        #toastArea { position: fixed; top: 100px; left: 50%; transform: translateX(-50%); z-index: 9999; pointer-events: none; width: 80%; max-width: 400px; }
+        .toast { 
+            background: rgba(255,255,255,0.95); color: #333; padding: 12px 20px; margin-bottom: 10px; 
+            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            font-weight: 700; display: flex; align-items: center; gap: 10px; 
+            animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-left: 6px solid var(--gold); backdrop-filter: blur(4px);
+        }
+        .toast.success { border-left-color: #2ecc71; }
+        .toast.error { border-left-color: var(--red); }
+        @keyframes slideIn { from { transform: translateY(-30px); opacity: 0; } }
+
+        /* --- TURN INDICATOR --- */
+        .turn-banner {
+            background: rgba(0,0,0,0.6); color: white; text-align: center;
+            padding: 8px 0; font-weight: 800; font-size: 1rem; text-transform: uppercase;
+            letter-spacing: 3px; transition: 0.3s;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .turn-banner.red { background: linear-gradient(90deg, transparent, rgba(229, 57, 53, 0.8), transparent); text-shadow: 0 0 10px var(--red); }
+        .turn-banner.blue { background: linear-gradient(90deg, transparent, rgba(30, 136, 229, 0.8), transparent); text-shadow: 0 0 10px var(--blue); }
+
+        /* --- HEADER --- */
+        header {
+            height: 70px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(38, 50, 56, 0.8); backdrop-filter: blur(10px); z-index: 50;
+        }
+        .hud { 
+            display: flex; align-items: center; gap: 10px; padding: 5px 20px; border-radius: 50px;
+            background: rgba(255,255,255,0.05); border: 2px solid transparent; transition: 0.3s; min-width: 120px;
+        }
+        .hud.red.active { border-color: var(--red); background: rgba(229, 57, 53, 0.2); transform: scale(1.05); }
+        .hud.blue.active { border-color: var(--blue); background: rgba(30, 136, 229, 0.2); transform: scale(1.05); }
+        
+        .score { font-size: 1.8rem; font-weight: 900; line-height: 1; }
+        .timer { 
+            font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; 
+            background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 8px; color: var(--gold);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* --- MAP AREA --- */
+        main { flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; cursor: grab; position: relative; }
+        main:active { cursor: grabbing; }
+        
+        .map-scaler { transform-origin: center; transition: transform 0.4s ease-out; padding: 50px; }
+
+        /* --- PENTAGON GRID (SHIELD STYLE) --- */
+        .hex-grid { display: flex; flex-direction: column; align-items: center; padding-top: 40px; }
+
+        .hex-row {
+            display: flex; justify-content: center;
+            margin-top: var(--hex-margin-top);
+        }
+        /* So le */
+        .hex-row:nth-child(even) { margin-left: var(--hex-indent); }
+
+        .hex {
+            width: var(--hex-width); height: var(--hex-height);
+            /* CLIP PATH NGŨ GIÁC (Dạng cái khiên/vảy) */
+            clip-path: polygon(50% 0%, 100% 25%, 100% 85%, 50% 100%, 0% 85%, 0% 25%);
+            
+            background: var(--grass); margin: 0 1px;
+            display: flex; justify-content: center; align-items: center;
+            position: relative; cursor: pointer; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            
+            /* Hiệu ứng 3D giả */
+            box-shadow: inset 0 -5px 10px rgba(0,0,0,0.3);
+        }
+
+        .hex::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.2) 100%);
+            pointer-events: none;
+        }
+
+        .hex:hover { transform: translateY(-5px) scale(1.1); z-index: 100; filter: brightness(1.3); }
+
+        /* Terrain */
+        .hex.grass { background: var(--grass); color: rgba(255,255,255,0.8); }
+        .hex.water { background: var(--water); cursor: not-allowed; opacity: 0.9; }
+        .hex.forest { background: var(--forest); cursor: not-allowed; }
+        .hex.mountain { background: var(--mountain); cursor: not-allowed; }
+        
+        /* Owner Styles */
+        .hex.red { background: var(--red); animation: popIn 0.4s; z-index: 5; }
+        .hex.blue { background: var(--blue); animation: popIn 0.4s; z-index: 5; }
+
+        /* Base Styles */
+        .hex.base { z-index: 20; }
+        .hex.base-red { background: #b71c1c; border-bottom: 4px solid rgba(0,0,0,0.5); }
+        .hex.base-blue { background: #0d47a1; border-bottom: 4px solid rgba(0,0,0,0.5); }
+
+        /* Animations */
+        @keyframes popIn { 0% { transform: scale(0.5); } 80% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        @keyframes siege { 0% { transform: scale(1); } 50% { transform: scale(0.9) rotate(5deg); box-shadow: 0 0 20px red; } 100% { transform: scale(1); } }
+
+        .hex.die { animation: siege 0.5s infinite; filter: grayscale(0.8) brightness(0.5); }
+
+        .hex-content { font-size: 1.4rem; font-weight: 900; pointer-events: none; text-shadow: 0 2px 4px rgba(0,0,0,0.4); }
+        .icon-lg { font-size: 2rem; color: white; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6)); }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            display: none; justify-content: center; align-items: center; z-index: 2000;
+            backdrop-filter: blur(8px); padding: 20px;
+        }
+        .modal-overlay.open { display: flex; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .card {
+            background: #eceff1; color: #333; padding: 25px; border-radius: 24px;
+            width: 100%; max-width: 600px;
+            text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            max-height: 90vh; overflow-y: auto; position: relative;
+        }
+
+        /* Quiz UI */
+        .q-img { max-height: 250px; max-width: 100%; object-fit: contain; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .q-text { font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; color: #263238; line-height: 1.4; }
+        .opts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        
+        .btn-opt {
+            padding: 15px; border: none; border-radius: 16px;
+            background: white; font-weight: 700; font-size: 1.1rem; cursor: pointer;
+            transition: 0.2s; color: #455a64; box-shadow: 0 4px 0 #cfd8dc;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .btn-opt:active { transform: translateY(4px); box-shadow: none; }
+        .btn-opt:hover { background: #e1f5fe; color: var(--blue); }
+        .btn-opt img { max-width: 100%; height: 80px; object-fit: contain; margin-top: 5px; }
+
+        /* Kit Selector */
+        #kitList { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 450px; }
+        .kit-btn { 
+            width: 100%; padding: 20px; background: rgba(255,255,255,0.08); 
+            border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 16px; 
+            cursor: pointer; text-align: left; font-weight: 700; font-size: 1.2rem; 
+            display: flex; justify-content: space-between; align-items: center;
+            transition: 0.2s;
+        }
+        .kit-btn:hover { background: rgba(255,255,255,0.2); border-color: var(--gold); transform: translateX(5px); }
+
+    </style>
+</head>
+<body>
+
+    <div id="toastArea"></div>
+
+    <!-- START SCREEN -->
+    <div id="startScreen" class="modal-overlay open" style="background: var(--bg);">
+        <div style="text-align: center; width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <i class="fa-solid fa-shield-halved" style="font-size: 4rem; color: var(--gold); margin-bottom: 15px;"></i>
+            <h1 style="font-size: 3rem; color: white; margin-bottom: 5px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px;">Color Kingdom</h1>
+            <p style="color: var(--blue); margin-bottom: 40px; font-size: 1.1rem; font-weight: 600;">PENTAGON SIEGE EDITION</p>
+            <div id="kitList">Loading Maps...</div>
+        </div>
+    </div>
+
+    <!-- TURN INDICATOR -->
+    <div id="turnBanner" class="turn-banner red">LƯỢT CỦA: RED TEAM</div>
+
+    <!-- HUD -->
+    <header>
+        <div class="hud red active" id="hudRed">
+            <i class="fa-solid fa-flag" style="color:var(--red);"></i>
+            <div>
+                <div class="score" id="scoreRed">0</div>
+            </div>
+        </div>
+
+        <div class="timer" id="timer">05:00</div>
+
+        <div class="hud blue" id="hudBlue">
+            <div style="text-align:right;">
+                <div class="score" id="scoreBlue">0</div>
+            </div>
+            <i class="fa-solid fa-flag" style="color:var(--blue);"></i>
+        </div>
+    </header>
+
+    <!-- MAP -->
+    <main id="mainMap">
+        <div class="map-scaler" id="mapContainer">
+            <div class="hex-grid" id="hexGrid"></div>
+        </div>
+    </main>
+
+    <!-- QUIZ -->
+    <div class="modal-overlay" id="quizModal">
+        <div class="card">
+            <div style="display:flex; justify-content:center;">
+                <img id="qImg" class="q-img" style="display:none;">
+            </div>
+            <h3 id="qText" class="q-text">...</h3>
+            <div id="qOpts" class="opts-grid"></div>
+        </div>
+    </div>
+
+    <!-- END GAME -->
+    <div class="modal-overlay" id="endModal">
+        <div class="card" style="border-top: 8px solid var(--gold);">
+            <i class="fa-solid fa-trophy" style="font-size: 4rem; color: var(--gold); margin-bottom: 15px;"></i>
+            <h1 id="winTitle" style="font-size: 3rem; text-transform: uppercase; margin-bottom: 10px; font-weight: 900;">WINNER</h1>
+            <p id="winReason" style="color:#546e7a; margin-bottom: 30px; font-size: 1.2rem; font-weight: 600;">...</p>
+            
+            <div style="display: flex; justify-content: space-around; font-size: 1.5rem; font-weight: 800; margin-bottom: 30px; background: #cfd8dc; padding: 15px; border-radius: 12px;">
+                <div style="color:var(--red)">RED: <span id="finalRed">0</span></div>
+                <div style="color:var(--blue)">BLUE: <span id="finalBlue">0</span></div>
+            </div>
+
+            <button class="btn-opt" style="width:100%; background:var(--gold); color:#263238; border:none; box-shadow: 0 5px 0 #f57f17;" onclick="saveAndReset()">
+                <i class="fa-solid fa-rotate-right"></i> CHƠI LẠI
+            </button>
+        </div>
+    </div>
+
+<script>
+    // --- SETUP ---
+    const firebaseConfig = { apiKey: "AIzaSyCd7vYlpSMcAlgwOPNBMyOhM0QIuzE-628", projectId: "thaococo-70cc7" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // --- GAME CONFIG ---
+    let ROWS = 6; 
+    let COLS = 6;
+    let TIME = 300;
+    
+    // Tỉ lệ địa hình
+    const TERRAIN_RATES = {
+        water: 0.1,    // 10%
+        forest: 0.15,  // 15%
+        mountain: 0.1  // 10%
+    };
+
+    let state = {
+        grid: [], 
+        turn: 'red',
+        scores: { red: 0, blue: 0 },
+        active: false,
+        timer: 0,
+        kitTitle: 'Trận đấu'
+    };
+    let questions = [];
+    let timerInt;
+    let targetCell = null;
+    const urlId = new URLSearchParams(window.location.search).get('id');
+
+    window.onload = () => {
+        if(urlId) loadGame(urlId);
+        else fetchKits();
+    };
+
+    function toast(msg, type='info') {
+        const div = document.createElement('div');
+        div.className = `toast ${type}`;
+        let icon = type === 'success' ? 'fa-circle-check' : (type==='error'?'fa-circle-xmark':'fa-circle-info');
+        div.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`;
+        document.getElementById('toastArea').appendChild(div);
+        setTimeout(() => { div.style.opacity = '0'; setTimeout(()=>div.remove(), 300); }, 3000);
+    }
+
+    async function fetchKits() {
+        const list = document.getElementById('kitList');
+        list.innerHTML = "";
+        try {
+            const snap = await db.collection('kits').limit(20).get();
+            snap.forEach(doc => {
+                const btn = document.createElement('div');
+                btn.className = 'kit-btn';
+                btn.innerHTML = `<span>${doc.data().title || 'Vùng đất mới'}</span> <i class="fa-solid fa-play"></i>`;
+                btn.onclick = () => window.location.href = `?id=${doc.id}`;
+                list.appendChild(btn);
+            });
+            if(snap.empty) list.innerHTML = "<div style='color:white'>Không tìm thấy bộ câu hỏi nào.</div>";
+        } catch(e) { console.error(e); list.innerHTML = "Lỗi kết nối Firebase"; }
+    }
+
+    async function loadGame(id) {
+        try {
+            const doc = await db.collection('kits').doc(id).get();
+            if(!doc.exists) return toast('Lỗi dữ liệu', 'error');
+            const d = doc.data();
+            state.kitTitle = d.title;
+            
+            // Map Size
+            if(d.mapSize === 'large') { ROWS=10; COLS=8; }
+            else if(d.mapSize === 'small') { ROWS=5; COLS=5; }
+            else { ROWS=7; COLS=6; } // Tăng nhẹ kích thước cho vui
+
+            // Time
+            if(d.timeLimit) TIME = parseInt(d.timeLimit)*60;
+            state.timer = TIME;
+
+            // Load Questions
+            questions = (d.questions || []).map(q => {
+                if(!q) return null;
+                let qImg = q.qMedia || q.imageUrl || q.image || (typeof q.image==='object'?q.image.url:"") || "";
+                let rawOpts = q.options || q.choices || ["A","B","C","D"];
+                let opts = rawOpts.map(o => {
+                    if (typeof o === 'string') return { text: o, media: "" };
+                    return { text: o.text || "...", media: o.media || "" };
+                });
+                return { 
+                    text: q.text||q.question, 
+                    opts: opts, 
+                    correct: q.correctIndex||0, 
+                    img: qImg 
+                };
+            }).filter(q=>q);
+            
+            if(!questions.length) questions=[{text:"Chiếm ô này?", opts:[{text:"Có"},{text:"Không"}], correct:0}];
+
+            document.getElementById('startScreen').classList.remove('open');
+            initBoard();
+            startGame();
+        } catch(e) { console.error(e); toast('Lỗi tải game', 'error'); }
+    }
+
+    function initBoard() {
+        const map = document.getElementById('hexGrid');
+        map.innerHTML = "";
+        state.grid = [];
+        state.scores = { red: 0, blue: 0 }; // Reset score
+
+        for(let r=0; r<ROWS; r++) {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'hex-row';
+            let rowData = [];
+
+            for(let c=0; c<COLS; c++) {
+                const hex = document.createElement('div');
+                let type = 'grass';
+                let pts = Math.floor(Math.random() * 20) + 10; // Điểm 10-30
+                let owner = null;
+
+                // --- SPAWN LOGIC ---
+                // Khoảng cách tới Red Base (0,0) và Blue Base (Max, Max)
+                // Sử dụng khoảng cách Manhattan đơn giản
+                let distToRed = r + c;
+                let distToBlue = (ROWS - 1 - r) + (COLS - 1 - c);
+                let isSafeZone = (distToRed <= 1) || (distToBlue <= 1);
+
+                if(r===0 && c===0) { type='base'; owner='red'; pts=0; }
+                else if(r===ROWS-1 && c===COLS-1) { type='base'; owner='blue'; pts=0; }
+                else if (!isSafeZone) {
+                    // Chỉ spawn chướng ngại vật ngoài vùng an toàn
+                    const rnd = Math.random();
+                    if(rnd < TERRAIN_RATES.water) type = 'water';
+                    else if(rnd < TERRAIN_RATES.water + TERRAIN_RATES.forest) type = 'forest';
+                    else if(rnd < TERRAIN_RATES.water + TERRAIN_RATES.forest + TERRAIN_RATES.mountain) type = 'mountain';
+                }
+
+                hex.className = `hex ${type}`;
+                if(type === 'base') {
+                    hex.classList.add(`base-${owner}`);
+                    hex.innerHTML = '<i class="fa-brands fa-fort-awesome icon-lg"></i>';
+                } else if(type === 'water') hex.innerHTML = '<i class="fa-solid fa-water" style="opacity:0.6; font-size:1.5rem;"></i>';
+                else if(type === 'forest') hex.innerHTML = '<i class="fa-solid fa-tree" style="opacity:0.6; font-size:1.5rem; color:#1b5e20;"></i>';
+                else if(type === 'mountain') hex.innerHTML = '<i class="fa-solid fa-mountain" style="opacity:0.6; font-size:1.5rem;"></i>';
+                else hex.innerHTML = `<span class="hex-content">${pts}</span>`;
+
+                hex.onclick = () => onHexClick(r, c);
+                rowDiv.appendChild(hex);
+                rowData.push({ r, c, type, owner, pts, dom: hex });
+            }
+            map.appendChild(rowDiv);
+            state.grid.push(rowData);
+        }
+        
+        // Auto Zoom fit screen
+        const scale = Math.min(1, 400 / (ROWS * 60)); 
+        document.getElementById('mapContainer').style.transform = `scale(${scale < 0.5 ? 0.5 : (scale > 1 ? 1 : scale)})`;
+    }
+
+    function onHexClick(r, c) {
+        if(!state.active) return;
+        const cell = state.grid[r][c];
+
+        // 1. Check địa hình
+        if(['water','forest','mountain','base'].includes(cell.type)) {
+            toast('Địa hình hiểm trở, không thể chiếm!', 'error');
+            return;
+        }
+        
+        // 2. Check chủ sở hữu
+        if(cell.owner === state.turn) {
+            toast('Ô này đã là của bạn!', 'info');
+            return;
+        }
+
+        // 3. Check kết nối (CONNECTIVITY RULE)
+        // Chỉ được đánh vào ô bên cạnh ô mình đã có (hoặc Base mình)
+        if(!isNeighborToFriendly(r, c, state.turn)) {
+            toast('Phải chiếm ô nằm cạnh lãnh thổ của bạn!', 'error');
+            return;
+        }
+
+        targetCell = {r, c};
+        openQuiz();
+    }
+
+    function isNeighborToFriendly(r, c, color) {
+        const neighbors = getNeighbors(r, c);
+        for(let n of neighbors) {
+            const neighborCell = state.grid[n.r][n.c];
+            // Nếu hàng xóm là Base của mình hoặc Đất của mình -> OK
+            if (neighborCell.owner === color) return true;
+        }
+        return false;
+    }
+
+    function openQuiz() {
+        const q = questions[Math.floor(Math.random()*questions.length)];
+        const modal = document.getElementById('quizModal');
+        const img = document.getElementById('qImg');
+
+        if(q.img && q.img.length > 5) {
+            img.src = q.img;
+            img.style.display = 'block';
+        } else { img.style.display = 'none'; }
+
+        document.getElementById('qText').innerText = q.text;
+        const optsDiv = document.getElementById('qOpts');
+        optsDiv.innerHTML = "";
+        
+        q.opts.forEach((o, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-opt';
+            let html = `<span>${o.text || ""}</span>`;
+            if(o.media && o.media.length > 5) html += `<img src="${o.media}">`;
+            btn.innerHTML = html;
+            btn.onclick = () => handleAnswer(i === q.correct);
+            optsDiv.appendChild(btn);
+        });
+
+        modal.classList.add('open');
+    }
+
+    function handleAnswer(isCorrect) {
+        document.getElementById('quizModal').classList.remove('open');
+        
+        if(isCorrect) {
+            const cell = state.grid[targetCell.r][targetCell.c];
+            const pts = cell.pts;
+
+            // Nếu cướp đất địch
+            if(cell.owner && cell.owner !== state.turn) {
+                state.scores[cell.owner] -= pts;
+                toast(`CƯỚP ${pts} ĐIỂM!`, 'success');
+            } else {
+                toast(`+${pts} ĐIỂM`, 'success');
+            }
+
+            cell.owner = state.turn;
+            cell.dom.className = `hex ${cell.type} ${state.turn}`;
+            state.scores[state.turn] += pts;
+
+            // --- LOGIC VÂY BẮT (Go Logic) ---
+            // Kiểm tra xem nước đi này có vây chết quân địch không
+            const enemyColor = state.turn === 'red' ? 'blue' : 'red';
+            
+            // 1. Kiểm tra vây bắt quân địch
+            checkCapture(enemyColor);
+
+            // 2. Kiểm tra vây hãm BASE ĐỊCH (Win Condition)
+            const enemyBasePos = enemyColor === 'red' ? {r:0, c:0} : {r:ROWS-1, c:COLS-1};
+            if(checkBaseSiege(enemyBasePos, enemyColor)) {
+                // Game Over ngay lập tức
+                state.scores[state.turn] += 1; // Bonus win
+                endGame(state.turn.toUpperCase(), "CĂN CỨ ĐỊCH ĐÃ THẤT THỦ!");
+                return; 
+            }
+
+            switchTurn();
+        } else {
+            toast('Sai rồi! Mất lượt.', 'error');
+            switchTurn();
+        }
+    }
+
+    // --- GAME LOGIC: VÂY BẮT ---
+
+    function checkCapture(targetColor) {
+        let visited = new Set();
+        let capturedCount = 0;
+
+        // Duyệt toàn bộ bàn cờ để tìm các nhóm quân của đối phương
+        for(let r=0; r<ROWS; r++) {
+            for(let c=0; c<COLS; c++) {
+                const cell = state.grid[r][c];
+                // Nếu gặp quân địch chưa kiểm tra
+                if(cell.owner === targetColor && cell.type !== 'base' && !visited.has(`${r},${c}`)) {
+                    const group = getGroup(r, c, targetColor, visited);
+                    
+                    // Nếu nhóm này KHÔNG có khí (liberty) -> Chết
+                    if(!group.hasLiberty) {
+                        group.cells.forEach(t => {
+                            // Trừ điểm địch
+                            state.scores[targetColor] -= t.pts;
+                            // Cộng điểm mình
+                            state.scores[state.turn] += t.pts;
+                            // Đổi màu
+                            t.owner = state.turn;
+                            t.dom.className = `hex ${t.type} ${state.turn}`;
+                            // Hiệu ứng visual
+                            t.dom.classList.add('die'); 
+                            setTimeout(()=>t.dom.classList.remove('die'), 1000);
+                            capturedCount++;
+                        });
+                    }
+                }
+            }
+        }
+        if(capturedCount > 0) setTimeout(() => toast(`VÂY BẮT ${capturedCount} Ô!`, 'success'), 500);
+    }
+
+    function checkBaseSiege(pos, baseColor) {
+        // Căn cứ được coi là một nhóm 1 ô.
+        // Kiểm tra khí của Căn cứ.
+        // Khí (Liberty) = Các ô xung quanh là CỎ TRỐNG (owner == null) hoặc là ĐỒNG MINH.
+        // Nếu xung quanh toàn là ĐỊCH hoặc CHƯỚNG NGẠI VẬT -> Căn cứ chết.
+        
+        const neighbors = getNeighbors(pos.r, pos.c);
+        let liberties = 0;
+
+        for (let n of neighbors) {
+            const nc = state.grid[n.r][n.c];
+            // Nếu ô bên cạnh là đồng minh (đất của baseColor) -> Base có thể "thở" qua ô đó -> Check tiếp xem nhóm đất đó có khí không?
+            // Đơn giản hóa: Nếu xung quanh Base còn ô trống (chưa ai chiếm), Base còn sống.
+            if (nc.owner === null && nc.type === 'grass') {
+                liberties++;
+            }
+            // Nếu xung quanh Base là quân mình, Base được nối vào nhóm quân đó.
+            // Nhưng ở đây ta chơi luật "Siege": Căn cứ bị vây kín mít bởi địch/tường là thua.
+            // Tạm tính: Nếu xung quanh không còn ô TRỐNG nào, và cũng không có ô ĐỒNG MINH nào -> CHẾT.
+            if (nc.owner === baseColor) {
+                // Base nối với quân mình -> Phải check xem nhóm quân mình có khí không?
+                // Tuy nhiên để game nhanh, ta chỉ check đơn giản:
+                // Nếu xung quanh Base bị bịt kín bởi ĐỊCH hoặc NÚI/NƯỚC -> Thua.
+                liberties++; 
+            }
+        }
+        return liberties === 0;
+    }
+
+    // Thuật toán Flood Fill tìm nhóm
+    function getGroup(startR, startC, color, visitedGlobal) {
+        let stack = [{r: startR, c: startC}];
+        let cells = [];
+        let hasLiberty = false; 
+        let visitedLocal = new Set(); 
+        
+        visitedGlobal.add(`${startR},${startC}`);
+        visitedLocal.add(`${startR},${startC}`);
+
+        while(stack.length > 0) {
+            const curr = stack.pop();
+            cells.push(state.grid[curr.r][curr.c]);
+            const neighbors = getNeighbors(curr.r, curr.c);
+            
+            for(let n of neighbors) {
+                const nc = state.grid[n.r][n.c];
+                
+                // ĐỊNH NGHĨA KHÍ (LIBERTY):
+                // Là ô Cỏ (Grass) và chưa có chủ (owner == null).
+                if(nc.type === 'grass' && nc.owner === null) {
+                    hasLiberty = true;
+                }
+                
+                // Nếu gặp quân cùng màu -> Gộp vào nhóm
+                if(nc.owner === color && !visitedLocal.has(`${n.r},${n.c}`) && nc.type !== 'base') {
+                    visitedGlobal.add(`${n.r},${n.c}`);
+                    visitedLocal.add(`${n.r},${n.c}`);
+                    stack.push(n);
+                }
+
+                // Lưu ý: Núi, Nước, Base địch, Quân địch được coi là TƯỜNG (không tạo ra Liberty).
+                // Do đó logic trên là đủ: Chỉ khi gặp Grass Null mới set hasLiberty = true.
+            }
+        }
+        return { cells, hasLiberty };
+    }
+
+    function getNeighbors(r, c) {
+        // Logic hàng xóm cho lưới lục giác so le (Row chẵn thụt vào)
+        const parity = r % 2; 
+        const offsets = (parity === 0) 
+            ? [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]] 
+            : [[-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]];
+        let res = [];
+        offsets.forEach(o => {
+            const nr = r+o[0], nc = c+o[1];
+            if(nr>=0 && nr<ROWS && nc>=0 && nc<COLS) res.push({r:nr, c:nc});
+        });
+        return res;
+    }
+
+    // --- SYSTEM ---
+    function startGame() {
+        state.active = true;
+        timerInt = setInterval(() => {
+            state.timer--;
+            let m = Math.floor(state.timer/60);
+            let s = state.timer%60;
+            document.getElementById('timer').innerText = `${m}:${s<10?'0'+s:s}`;
+            if(state.timer<=0) endGame(state.scores.red>state.scores.blue?'RED':'BLUE', 'HẾT GIỜ!');
+        }, 1000);
+        updateHUD();
+        toast("BẮT ĐẦU! HÃY BẢO VỆ CĂN CỨ!", "success");
+    }
+
+    function switchTurn() {
+        state.turn = state.turn === 'red' ? 'blue' : 'red';
+        updateHUD();
+        const banner = document.getElementById('turnBanner');
+        banner.className = `turn-banner ${state.turn}`;
+        banner.innerText = `LƯỢT CỦA: ${state.turn.toUpperCase()} TEAM`;
+    }
+
+    function updateHUD() {
+        document.getElementById('scoreRed').innerText = state.scores.red;
+        document.getElementById('scoreBlue').innerText = state.scores.blue;
+        document.getElementById('hudRed').classList.toggle('active', state.turn==='red');
+        document.getElementById('hudBlue').classList.toggle('active', state.turn==='blue');
+        document.getElementById('finalRed').innerText = state.scores.red;
+        document.getElementById('finalBlue').innerText = state.scores.blue;
+    }
+
+    function endGame(winner, reason) {
+        clearInterval(timerInt);
+        state.active = false;
+        document.getElementById('endModal').classList.add('open');
+        document.getElementById('winTitle').innerText = winner + " WINS!";
+        document.getElementById('winTitle').style.color = winner==='RED'?'var(--red)':'var(--blue)';
+        document.getElementById('winReason').innerText = reason;
+        
+        // Bonus hiệu ứng nổ pháo hoa nếu cần (đơn giản hóa bằng logic CSS)
+    }
+
+    async function saveAndReset() {
+        try {
+            await db.collection('game_results').add({
+                kitId: urlId || 'unknown',
+                kitTitle: state.kitTitle,
+                redScore: state.scores.red,
+                blueScore: state.scores.blue,
+                winner: state.scores.red > state.scores.blue ? 'RED' : (state.scores.red < state.scores.blue ? 'BLUE' : 'DRAW'),
+                playedAt: new Date().toISOString()
+            });
+            toast('Đã lưu kết quả!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } catch(e) {
+            console.error(e);
+            toast('Lỗi lưu kết quả', 'error');
+            setTimeout(() => location.reload(), 1000);
+        }
+    }
+</script>
+</body>
+</html>

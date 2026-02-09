@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Ký | Quiz Studio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        /* --- CSS ĐỒNG BỘ VỚI TRANG LOGIN --- */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1600&q=80') no-repeat center center fixed;
+            background-size: cover; margin: 0; height: 100vh;
+            display: flex; justify-content: center; align-items: center; color: white;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background: rgba(0, 15, 40, 0.6); backdrop-filter: blur(10px);
+        }
+        .container {
+            position: relative; z-index: 2;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px; padding: 40px; width: 350px; text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            backdrop-filter: blur(20px);
+        }
+        h2 { margin-bottom: 30px; font-size: 28px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        
+        .input-box {
+            display: flex; align-items: center; margin-bottom: 20px;
+            background: rgba(255,255,255,0.15); border-radius: 12px; padding: 5px 15px;
+            border: 1px solid rgba(255,255,255,0.1); transition: 0.3s;
+        }
+        .input-box:focus-within { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.5); }
+        .input-box i { color: #60a5fa; font-size: 18px; margin-right: 10px; }
+        .input-box input {
+            flex: 1; border: none; outline: none; background: transparent;
+            color: #fff; font-size: 15px; padding: 10px 0;
+        }
+        .input-box input::placeholder { color: #ccc; }
+
+        button {
+            width: 100%; background: linear-gradient(135deg, #2563eb, #00b4ff);
+            border: none; color: white; padding: 14px; border-radius: 12px;
+            cursor: pointer; font-weight: 600; font-size: 16px; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4); }
+        
+        button.google { background: #fff; color: #333; margin-top: 15px; }
+        button.google:hover { background: #f1f1f1; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        button.google i { color: #db4437; }
+
+        .switch { margin-top: 25px; font-size: 14px; color: #ccc; }
+        .switch a { color: #60a5fa; text-decoration: none; font-weight: 600; transition: 0.2s; }
+        .switch a:hover { color: #93c5fd; text-decoration: underline; }
+
+        /* POPUP */
+        .popup {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px); display: none;
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        .popup-content {
+            background: #fff; color: #333; padding: 30px; width: 320px;
+            border-radius: 20px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: popIn 0.3s ease;
+        }
+        @keyframes popIn { from {transform: scale(0.8); opacity: 0;} to {transform: scale(1); opacity: 1;} }
+        .btn-close { background: #2563eb; color: white; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2><i class="fa-solid fa-user-plus"></i> Đăng Ký</h2>
+
+    <div class="input-box">
+        <i class="fa fa-user"></i>
+        <input type="text" id="username" placeholder="Tên hiển thị (VD: Tuấn Tú)">
+    </div>
+
+    <div class="input-box">
+        <i class="fa fa-envelope"></i>
+        <input type="email" id="email" placeholder="Email">
+    </div>
+
+    <div class="input-box">
+        <i class="fa fa-lock"></i>
+        <input type="password" id="password" placeholder="Mật khẩu (6+ ký tự)">
+    </div>
+
+    <button id="btnSignupEmail">
+        <i class="fa-solid fa-rocket"></i> Tạo tài khoản
+    </button>
+
+    <button id="btnSignupGoogle" class="google">
+        <i class="fa-brands fa-google"></i> Đăng ký với Google
+    </button>
+
+    <p class="switch">Đã có tài khoản? <a href="login.html">Đăng nhập</a></p>
+</div>
+
+<div id="notifyPopup" class="popup">
+    <div class="popup-content">
+        <i id="notifyIcon" class="fa-solid fa-circle-info" style="font-size: 3rem; color: #2563eb; margin-bottom: 15px;"></i>
+        <h3 id="notifyTitle" style="margin-top:0; color:#333;">Thông báo</h3>
+        <p id="notifyMessage" style="color:#666; line-height: 1.5;"></p>
+        <button id="btnCloseNotify" class="btn-close">OK</button>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCd7vYlpSMcAlgwOPNBMyOhM0QIuzE-628",
+        authDomain: "thaococo-70cc7.firebaseapp.com",
+        projectId: "thaococo-70cc7",
+        storageBucket: "thaococo-70cc7.appspot.com",
+        messagingSenderId: "289749987059",
+        appId: "1:289749987059:web:5ea067327247588cdc1186"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    // --- UTILS ---
+    function showNotify(msg, type = "info") {
+        const icon = document.getElementById("notifyIcon");
+        const title = document.getElementById("notifyTitle");
+        document.getElementById("notifyMessage").innerText = msg;
+
+        if (type === "error") {
+            icon.className = "fa-solid fa-circle-xmark";
+            icon.style.color = "#ef4444";
+            title.innerText = "Có lỗi rồi";
+        } else if (type === "success") {
+            icon.className = "fa-solid fa-circle-check";
+            icon.style.color = "#22c55e";
+            title.innerText = "Thành công";
+        } else {
+            icon.className = "fa-solid fa-circle-info";
+            icon.style.color = "#3b82f6";
+            title.innerText = "Thông báo";
+        }
+        document.getElementById("notifyPopup").style.display = "flex";
+    }
+
+    function translateError(code) {
+        switch (code) {
+            case "auth/email-already-in-use": return "Email này đã có người dùng rồi.";
+            case "auth/invalid-email": return "Email không hợp lệ.";
+            case "auth/weak-password": return "Mật khẩu yếu quá (cần ít nhất 6 ký tự).";
+            case "auth/network-request-failed": return "Lỗi mạng, kiểm tra wifi nhé.";
+            default: return "Lỗi: " + code;
+        }
+    }
+
+    // --- SYNC DB AN TOÀN (Không chặn đăng nhập) ---
+    async function syncUserSafely(user, customName) {
+        try {
+            await db.collection("users").doc(user.uid).set({
+                username: customName || user.displayName || user.email.split("@")[0],
+                email: user.email,
+                createdAt: new Date().toISOString()
+            });
+        } catch (e) {
+            console.warn("Lỗi sync DB (Không sao, vẫn vào được):", e);
+        }
+    }
+
+    // --- LOGIC ĐĂNG KÝ EMAIL ---
+    async function handleSignupEmail() {
+        const username = document.getElementById("username").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value.trim();
+        const btn = document.getElementById("btnSignupEmail");
+
+        if (!username || !email || !password) return showNotify("Vui lòng điền đầy đủ thông tin", "error");
+
+        const originalBtn = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo...';
+        btn.disabled = true;
+
+        try {
+            // 1. Tạo tài khoản
+            const result = await auth.createUserWithEmailAndPassword(email, password);
+            
+            // 2. CẬP NHẬT TÊN NGAY LẬP TỨC (Quan trọng)
+            // Bước này giúp khi vào trang chủ, currentUser.displayName sẽ có giá trị luôn
+            await result.user.updateProfile({
+                displayName: username
+            });
+
+            // 3. Sync DB ngầm
+            syncUserSafely(result.user, username);
+
+            // 4. Thông báo và chuyển hướng
+            showNotify(`Tài khoản ${username} đã sẵn sàng!`, "success");
+            setTimeout(() => window.location.href = "main.html", 1500);
+
+        } catch (err) {
+            showNotify(translateError(err.code), "error");
+            btn.innerHTML = originalBtn;
+            btn.disabled = false;
+        }
+    }
+
+    // --- LOGIC ĐĂNG KÝ GOOGLE ---
+    async function handleSignupGoogle() {
+        try {
+            const result = await auth.signInWithPopup(provider);
+            showNotify(`Chào mừng ${result.user.displayName}!`, "success");
+            syncUserSafely(result.user);
+            setTimeout(() => window.location.href = "index.html", 1500);
+        } catch (err) {
+            showNotify("Lỗi Google: " + err.message, "error");
+        }
+    }
+
+    // --- EVENTS ---
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("btnSignupEmail").addEventListener("click", handleSignupEmail);
+        document.getElementById("btnSignupGoogle").addEventListener("click", handleSignupGoogle);
+        
+        document.getElementById("btnCloseNotify").addEventListener("click", () => {
+            document.getElementById("notifyPopup").style.display = "none";
+        });
+
+        // Enter key
+        document.addEventListener("keydown", (e) => {
+            if(e.key === "Enter" && document.getElementById("notifyPopup").style.display === "none") {
+                handleSignupEmail();
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
