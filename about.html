@@ -10,6 +10,7 @@
     
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
     <style>
         :root {
@@ -113,22 +114,41 @@
 
 <script>
     const firebaseConfig = { apiKey: "AIzaSyCd7vYlpSMcAlgwOPNBMyOhM0QIuzE-628", projectId: "thaococo-70cc7" };
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth(); 
 
     let allResults = [];
 
-    // Tự động tải khi vào trang
-    window.onload = loadStats;
+    // KIỂM TRA ĐĂNG NHẬP KHI MỞ TRANG
+    window.onload = () => {
+        const loadingDiv = document.getElementById('loading');
+        loadingDiv.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang kiểm tra trạng thái đăng nhập...';
+        
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                loadingDiv.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải dữ liệu...';
+                loadStats(); // Gọi hàm tải dữ liệu
+            } else {
+                // CHẶN NGƯỜI LẠ
+                loadingDiv.innerHTML = `
+                    <div style="color: var(--danger); margin-bottom: 20px;">
+                        <i class="fa-solid fa-shield-halved" style="font-size: 3rem; display:block; margin-bottom:10px;"></i>
+                        <b style="font-size: 1.2rem;">Truy cập bị từ chối!</b><br>
+                        Bạn chưa đăng nhập. Vui lòng quay lại trang chủ và đăng nhập tài khoản Admin để xem thống kê.
+                    </div>
+                    <a href="main.html" style="background: var(--primary); color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        <i class="fa-solid fa-right-to-bracket"></i> Đi đến trang Đăng nhập
+                    </a>
+                `;
+            }
+        });
+    };
 
+    // HÀM TẢI DỮ LIỆU TỪ FIREBASE
     async function loadStats() {
         try {
-            // Lấy dữ liệu từ collection 'game_results'
-            // Lưu ý: Game code trước đó không lưu ownerId, nên ta lấy toàn bộ (limit 100)
-            // Nếu bạn muốn lấy riêng user, cần update code game để lưu uid
-            const snapshot = await db.collection('game_results')
-                .limit(100) 
-                .get(); 
+            const snapshot = await db.collection('game_results').limit(100).get(); 
 
             allResults = [];
             if (snapshot.empty) {
@@ -139,15 +159,14 @@
             snapshot.forEach(doc => {
                 let data = doc.data();
                 data.id = doc.id;
-                // Fallback nếu thiếu ngày
                 data.playedAt = data.playedAt || new Date().toISOString(); 
                 allResults.push(data);
             });
 
-            // Sắp xếp client-side (Mới nhất lên đầu)
+            // Sắp xếp
             allResults.sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
 
-            // Tạo Filter (Lọc theo tên Map/Kit Title)
+            // Tạo Filter
             const uniqueTitles = [...new Set(allResults.map(item => item.kitTitle || "Không tên"))];
             const select = document.getElementById('quiz-filter');
             uniqueTitles.forEach(title => {
@@ -165,10 +184,10 @@
 
         } catch (error) {
             console.error(error);
-            document.getElementById('loading').innerText = "Lỗi tải dữ liệu (Cần tạo Index trên Firebase nếu sort).";
-            // Nếu lỗi Index, thử load không sort từ server
-            if(error.message.includes("index")) {
-               // Fallback logic could go here
+            if(error.message.includes("permission")) {
+                document.getElementById('loading').innerHTML = "Lỗi quyền truy cập: Bạn cần đăng nhập tài khoản Admin để xem thống kê.";
+            } else {
+                document.getElementById('loading').innerText = "Lỗi tải dữ liệu. Vui lòng thử lại sau.";
             }
         }
     }
@@ -179,11 +198,8 @@
         
         data.forEach(item => {
             const tr = document.createElement('tr');
-            
-            // Format ngày giờ
             const date = new Date(item.playedAt).toLocaleString('vi-VN');
             
-            // Xác định Badge
             let badgeClass = 'draw';
             let winnerText = 'Hòa';
             if(item.winner === 'RED') { badgeClass = 'win-red'; winnerText = 'RED TEAM'; }
@@ -209,35 +225,31 @@
     }
 
     function updateSummary(data) {
-        // 1. Tổng lượt chơi
         document.getElementById('total-plays').innerText = data.length;
-
-        // 2. Thống kê thắng thua
-        let redWins = data.filter(d => d.winner === 'RED').length;
-        let blueWins = data.filter(d => d.winner === 'BLUE').length;
-
-        document.getElementById('red-wins').innerText = redWins;
-        document.getElementById('blue-wins').innerText = blueWins;
+        document.getElementById('red-wins').innerText = data.filter(d => d.winner === 'RED').length;
+        document.getElementById('blue-wins').innerText = data.filter(d => d.winner === 'BLUE').length;
     }
 
     function filterData() {
         const selected = document.getElementById('quiz-filter').value;
-        if (selected === 'all') {
-            renderTable(allResults);
-        } else {
-            const filtered = allResults.filter(item => (item.kitTitle || "Không tên") === selected);
-            renderTable(filtered);
+        let filteredData = allResults;
+        
+        if (selected !== 'all') {
+            filteredData = allResults.filter(item => (item.kitTitle || "Không tên") === selected);
         }
+        
+        renderTable(filteredData);
+        updateSummary(filteredData); 
     }
 
     async function deleteResult(docId) {
         if(confirm("Xóa lịch sử trận đấu này?")) {
             try {
                 await db.collection('game_results').doc(docId).delete();
-                // Reload lại trang cho nhanh
-                location.reload();
+                allResults = allResults.filter(item => item.id !== docId);
+                filterData();
             } catch (e) {
-                alert("Lỗi xóa: " + e.message);
+                alert("Lỗi xóa: Bạn không có quyền hoặc mất kết nối mạng.");
             }
         }
     }
@@ -248,12 +260,11 @@
 
         if(dataToExport.length === 0) { alert("Không có dữ liệu!"); return; }
 
-        let csvContent = "data:text/csv;charset=utf-8,";
-        // Header CSV
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
         csvContent += "Ten Ban Do,Nguoi Thang,Diem Red,Diem Blue,Ngay Gio\r\n";
 
         dataToExport.forEach(row => {
-            const date = new Date(row.playedAt).toLocaleString('vi-VN').replace(',', '');
+            const date = new Date(row.playedAt).toLocaleString('vi-VN').replace(/,/g, '');
             const cleanTitle = (row.kitTitle || "Map").replace(/,/g, " -"); 
             
             csvContent += `${cleanTitle},${row.winner},${row.redScore},${row.blueScore},${date}\r\n`;
@@ -262,9 +273,11 @@
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "lich_su_color_kingdom.csv");
+        const timeStr = new Date().toISOString().slice(0, 10);
+        link.setAttribute("download", `LichSu_ColorKingdom_${timeStr}.csv`);
         document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
     }
 </script>
 
