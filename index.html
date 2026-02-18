@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Kingdom</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <style>
+        /* --- COPY BỘ MÀU TỪ FILE GAME QUA --- */
+        :root {
+            --red: #e53935;
+            --blue: #1e88e5;
+            --gold: #ffca28;
+            --bg: #102027;
+            --text-muted: #b0bec5;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Be Vietnam Pro', sans-serif; }
+
+        body {
+            background-color: var(--bg);
+            /* Nền gradient giống game nhưng tối hơn một chút để làm nổi bật nội dung */
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(229, 57, 53, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(30, 136, 229, 0.15) 0%, transparent 50%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* --- NAVBAR --- */
+        nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 40px;
+            position: fixed; width: 100%; top: 0; z-index: 100;
+            background: rgba(16, 32, 39, 0.8); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            font-size: 1.5rem; font-weight: 900; text-transform: uppercase;
+            display: flex; align-items: center; gap: 10px; color: var(--gold);
+        }
+
+        .nav-links a {
+            text-decoration: none; color: white; font-weight: 700;
+            margin-left: 30px; transition: 0.3s;
+        }
+        .nav-links a:hover { color: var(--gold); }
+
+        /* Nút Đăng ký trên Nav */
+        .btn-nav-signup {
+            padding: 10px 25px; background: var(--blue); border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(30, 136, 229, 0.3);
+        }
+        .btn-nav-signup:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(30, 136, 229, 0.5); color: white !important;}
+
+        /* --- HERO SECTION --- */
+        .hero {
+            height: 100vh; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 10%; margin-top: 60px; /* Bù trừ cho navbar fixed */
+        }
+
+        .hero-content { flex: 1; max-width: 600px; z-index: 2; }
+        
+        h1 {
+            font-size: 4rem; font-weight: 900; line-height: 1.1; margin-bottom: 10px;
+            text-transform: uppercase; letter-spacing: -1px;
+        }
+        .highlight {
+            background: linear-gradient(to right, var(--red), var(--gold), var(--blue));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        h2 {
+            font-size: 1.5rem; color: var(--gold); margin-bottom: 30px;
+            font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+        }
+        .hero p { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 40px; line-height: 1.6; }
+
+        /* Các nút bấm chính */
+        .cta-group { display: flex; gap: 20px; }
+        .btn {
+            padding: 15px 40px; border-radius: 12px; font-size: 1.2rem; font-weight: 800;
+            text-decoration: none; transition: all 0.3s ease; display: flex; align-items: center; gap: 10px;
+        }
+        .btn-primary {
+            background: var(--gold); color: var(--bg);
+            box-shadow: 0 10px 20px rgba(255, 202, 40, 0.3);
+        }
+        .btn-primary:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(255, 202, 40, 0.5); }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1); color: white;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.2); border-color: white; }
+
+        /* Hình ảnh minh họa bên phải */
+        .hero-visual {
+            flex: 1; display: flex; justify-content: center; align-items: center;
+            position: relative;
+        }
+        .big-shield {
+            font-size: 25rem; 
+            /* Tạo hiệu ứng khiên 2 màu */
+            background: linear-gradient(135deg, var(--red) 50%, var(--blue) 50%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.5));
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+        /* --- FEATURES SECTION (Giới thiệu nhanh) --- */
+        .features {
+            padding: 80px 10%; background: rgba(0,0,0,0.2);
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px;
+        }
+        .feature-card {
+            background: rgba(255,255,255,0.05); padding: 40px 30px; border-radius: 24px;
+            text-align: center; border: 1px solid rgba(255,255,255,0.1); transition: 0.3s;
+        }
+        .feature-card:hover { transform: translateY(-10px); border-color: var(--gold); background: rgba(255,255,255,0.08); }
+        .f-icon { font-size: 3rem; color: var(--gold); margin-bottom: 20px; }
+        .feature-card h3 { font-size: 1.5rem; margin-bottom: 15px; }
+        .feature-card p { color: var(--text-muted); }
+
+        /* --- FOOTER --- */
+        footer { text-align: center; padding: 40px; color: rgba(255,255,255,0.4); font-size: 0.9rem; }
+
+        /* Mobile Responsive */
+        @media (max-width: 968px) {
+            .hero { flex-direction: column-reverse; text-align: center; height: auto; padding-top: 120px; padding-bottom: 60px; }
+            .hero-content { margin-top: 40px; }
+            .cta-group { justify-content: center; }
+            h1 { font-size: 3rem; }
+            .big-shield { font-size: 15rem; }
+            nav { padding: 20px; }
+            .nav-links a:not(.btn-nav-signup) { display: none; } /* Ẩn bớt link trên mobile */
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo">
+            <i class="fa-solid fa-shield-halved"></i> Quiz Studio
+        </div>
+        <div class="nav-links">
+            <a href="login.html">Đăng nhập</a>
+            <a href="signup.html" class="btn-nav-signup">Đăng ký ngay</a>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <h1>Chào mừng đến với <br> <span class="highlight">Color Kingdom</span></h1>
+            <h2>Pentagon Siege Edition</h2>
+            <p>
+                Trò chơi chiến thuật trên bản đồ ngũ giác độc đáo. Kết hợp kiến thức và tư duy chiến lược để chiếm lãnh thổ, vây bắt kẻ thù và bảo vệ căn cứ của bạn.
+            </p>
+            <div class="cta-group">
+                <a href="signup.html" class="btn btn-primary">
+                    <i class="fa-solid fa-play"></i> Tham Gia Chiến Đấu
+                </a>
+                <a href="login.html" class="btn btn-secondary">
+                    Đăng Nhập
+                </a>
+            </div>
+        </div>
+        
+        <div class="hero-visual">
+            <i class="fa-solid fa-shield-halved big-shield"></i>
+        </div>
+    </header>
+
+    <section class="features">
+        <div class="feature-card">
+            <i class="fa-solid fa-brain f-icon"></i>
+            <h3>Chiến Thuật & Trí Tuệ</h3>
+            <p>Trả lời câu hỏi để giành quyền đi. Mỗi bước di chuyển đều cần sự tính toán kỹ lưỡng.</p>
+        </div>
+        <div class="feature-card">
+            <i class="fa-solid fa-vector-square f-icon"></i>
+            <h3>Bản Đồ Ngũ Giác</h3>
+            <p>Lưới địa hình độc đáo với các yếu tố Rừng, Núi, Nước tạo nên vô số tình huống bất ngờ.</p>
+        </div>
+        <div class="feature-card">
+            <i class="fa-solid fa-flag-checkered f-icon"></i>
+            <h3>Vây Hãm & Chiến Thắng</h3>
+            <p>Áp dụng luật vây bắt (giống Cờ Vây) để tiêu diệt quân địch và chiếm đóng căn cứ.</p>
+        </div>
+    </section>
+
+    <footer>
+        © 2024 Color Kingdom. Pentagon Siege Edition.
+    </footer>
+
+</body>
+</html>
