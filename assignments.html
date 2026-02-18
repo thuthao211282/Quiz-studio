@@ -110,18 +110,18 @@
         /* PANEL REVIEW ĐỒNG BỘ */
         /* --- CSS CHO PANEL CÂU HỎI --- */
 .preview-card {
-    background: rgba(255, 255, 255, 0.6); /* Nền mờ nhẹ */
-    border: 1px solid rgba(255, 255, 255, 0.2); /* Viền mỏng */
-    border-radius: 16px; /* Bo góc tròn trịa */
-    padding: 20px;
-    margin-bottom: 20px;
+    background: var(--glass-bg); /* Nền mờ nhẹ */
+    border: 1px solid var(--glass-border); /* Viền mỏng */
+    border-radius: 24px; /* Bo góc tròn trịa */
+    padding: 25px;
+    margin-bottom: 25px;
     color: white;
     
     /* QUAN TRỌNG: Tạo độ mượt khi thay đổi trạng thái */
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     
     /* Bóng đổ mặc định (nhẹ) */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
 }
 
 /* --- HIỆU ỨNG KHI HOVER (DI CHUỘT VÀO) --- */
@@ -133,7 +133,7 @@
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); 
     
     /* 3. Làm sáng nền và viền một chút */
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.8);
     border-color: rgba(255, 255, 255, 0.5);
 }
         .preview-q-text { font-size: 1.1rem; font-weight: 700; color: var(--text-dark); margin-bottom: 12px; }
