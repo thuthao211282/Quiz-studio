@@ -591,7 +591,6 @@ header {
     }
 
     // --- RENDER DANH SÁCH REVIEW ---
-    // --- RENDER DANH SÁCH REVIEW (Đã sửa hiển thị ảnh) ---
     function renderPreview() {
         const container = document.getElementById('previewList');
         container.innerHTML = workingQuestions.length > 0 
@@ -721,18 +720,29 @@ header {
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
         btn.disabled = true;
 
+        // ==========================================
+        // CÁCH LÁCH LUẬT FIREBASE: CHUYỂN MẢNG THÀNH OBJECT
+        const safeQuestionsArray = JSON.parse(JSON.stringify(workingQuestions));
+        const questionsMap = {};
+        
+        safeQuestionsArray.forEach((q, index) => {
+            // Dùng q_000, q_001 để đảm bảo thứ tự câu hỏi không bị xáo trộn
+            const key = `q_${index.toString().padStart(3, '0')}`;
+            questionsMap[key] = q; 
+        });
+        // ==========================================
+
         try {
             if (editId) {
                 // --- UPDATE BỘ CŨ ---
                 await db.collection('kits').doc(editId).update({
                     title: title,
-                    questions: workingQuestions,
+                    questions: questionsMap, // Đẩy Object lên thay vì Mảng
                     updatedAt: new Date().toISOString(),
                     ownerId: user.uid 
                 });
                 
                 myAlert("Cập nhật bộ câu hỏi thành công!");
-                // CHUYỂN TRANG
                 setTimeout(() => { window.location.href = "main.html"; }, 1500);
 
             } else {
@@ -741,20 +751,16 @@ header {
                     ownerId: user.uid, 
                     ownerEmail: user.email, 
                     title: title,
-                    questions: workingQuestions,
+                    questions: questionsMap, // Đẩy Object lên thay vì Mảng
                     createdAt: new Date().toISOString()
                 });
 
                 myAlert("Đã tạo bộ câu hỏi mới thành công!");
-                
-                // ===> ĐÃ THÊM: CHUYỂN TRANG SAU KHI TẠO MỚI <===
                 setTimeout(() => { window.location.href = "main.html"; }, 1500);
             }
         } catch(e) { 
             console.error(e);
             myAlert("Lỗi lưu trữ: " + e.message, "error"); 
-            
-            // Trả lại nút bấm nếu lỗi
             btn.innerHTML = oldText;
             btn.disabled = false;
         }
@@ -795,7 +801,17 @@ header {
             
             // 1. Điền thông tin
             document.getElementById('kitTitle').value = data.title;
-            workingQuestions = data.questions || [];
+
+            // ==========================================
+            // XỬ LÝ DỮ LIỆU KHI TẢI VỀ (Từ Object trả lại Mảng)
+            const rawQuestions = data.questions || {};
+            if (Array.isArray(rawQuestions)) {
+                workingQuestions = rawQuestions; // Đề phòng bộ kit cũ lưu dạng mảng
+            } else {
+                // Sắp xếp lại đúng thứ tự q_000, q_001... và chuyển về dạng Mảng
+                workingQuestions = Object.keys(rawQuestions).sort().map(k => rawQuestions[k]);
+            }
+            // ==========================================
             
             // 2. Render
             renderPreview();
