@@ -156,28 +156,40 @@
         .btn-circle {
             width: 40px; height: 40px; border-radius: 50%; border: none;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
             background: #f5f5f5; color: #666;
             text-decoration: none; font-size: 1.1rem;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
+        /* --- ĐỒNG BỘ ANIMATION: NẢY, PHÓNG TO & XOAY --- */
+        .btn-settings:hover,
+        .btn-edit:hover,
+        .btn-delete:hover,
+        .btn-review:hover {
+            /* translateY: nảy lên, scale: phóng to, rotate: xoay (5 độ) */
+            transform: translateY(-5px) scale(1.15) rotate(30deg);
+        }
+
+        /* Giữ màu sắc riêng biệt khi hover cho từng nút */
         .btn-settings:hover { 
             background: #ffc107; color: white; 
-            transform: rotate(90deg);
-            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
         }
 
         .btn-edit:hover { 
             background: #2563eb; color: white; 
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
         }
 
         .btn-delete:hover { 
             background: #ff4757; color: white; 
-            transform: scale(1.1) rotate(15deg);
-            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+            box-shadow: 0 8px 20px rgba(255, 71, 87, 0.4);
+        }
+
+        .btn-review:hover { 
+            background: var(--success); color: white; 
+            box-shadow: 0 8px 20px rgba(0, 176, 155, 0.4);
         }
 
         /* --- MODAL ANIMATION & STYLE --- */
