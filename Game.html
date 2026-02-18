@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Color Kingdom | Pentagon Siege</title>
+    <title>Color Kingdom | Quiz Studio</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -158,28 +158,95 @@
             </button>
         </div>
     </div>
-
 <script>
-    // --- SETUP ---
+    // --- 1. OVERRIDE CSS: LÀM KHÍP BẰNG CÁCH SO LE (STAGGERED) ---
+    const style = document.createElement('style');
+    style.innerHTML = `
+        /* Thiết lập khung chứa hàng */
+        .hex-row {
+            display: flex;
+            justify-content: center; /* Canh giữa map */
+            margin-top: -26px;       /* Kéo hàng dưới lún lên ngàm vào hàng trên (104px * 0.25) */
+        }
+        /* Hàng đầu tiên thì không bị kéo lên */
+        .hex-row:first-child {
+            margin-top: 0;
+        }
+        /* ĐẨY SO LE CÁC HÀNG CHẴN (Bí quyết khít 100%) */
+        .hex-row:nth-child(even) {
+            margin-left: 91px; /* Đẩy sang phải nửa ô (90/2 = 45px) + 1px khe hở */
+        }
+
+        /* Định hình ô lục giác */
+        .hex {
+            width: 90px;
+            height: 104px;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%) !important;
+            margin: 0 1px !important; /* Khe hở siêu mỏng tinh tế */
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        /* Hiệu ứng nổ/phóng to khi chiếm được ô */
+        @keyframes captureFlash {
+            0% { transform: scale(1); filter: brightness(1); z-index: 10; }
+            50% { transform: scale(1.25); filter: brightness(2) drop-shadow(0 0 15px white); z-index: 100; }
+            100% { transform: scale(1); filter: brightness(1); z-index: 10; }
+        }
+        .hex.captured-anim {
+            animation: captureFlash 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Hiệu ứng lơ lửng cho icon căn cứ */
+        @keyframes floatBase {
+            0%, 100% { transform: translateY(0); filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6)); }
+            50% { transform: translateY(-8px); filter: drop-shadow(0 12px 5px rgba(0,0,0,0.4)); }
+        }
+        .hex.base .icon-lg {
+            animation: floatBase 2s ease-in-out infinite;
+        }
+        
+        /* Mặt nước dập dềnh nhẹ */
+        @keyframes waterRipple {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-3px) scale(1.02); }
+        }
+        .hex.water i {
+            animation: waterRipple 3s ease-in-out infinite;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // --- SETUP FIREBASE ---
     const firebaseConfig = { apiKey: "AIzaSyCd7vYlpSMcAlgwOPNBMyOhM0QIuzE-628", projectId: "thaococo-70cc7" };
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // --- GAME CONFIG ---
-    let ROWS = 6, COLS = 6, TIME = 300;
-    const TERRAIN_RATES = { water: 0.1, forest: 0.15, mountain: 0.1 };
+    // --- GAME CONFIG & FIXED MAP (GỌN GÀNG) ---
+    let TIME = 300;
+    const ROWS = 6, COLS = 6;
+    
+    // Bản đồ chiến thuật 6x6
+    const FIXED_MAP = [
+        ['R', 'G', 'G', 'G', 'G', 'G'],
+        ['G', 'G', 'M', 'G', 'G', 'G'],
+        ['G', 'G', 'W', 'W', 'G', 'G'],
+        ['G', 'G', 'W', 'W', 'G', 'G'],
+        ['G', 'G', 'G', 'M', 'G', 'G'],
+        ['G', 'G', 'G', 'G', 'G', 'B']
+    ];
 
     let state = { grid: [], turn: 'red', scores: { red: 0, blue: 0 }, active: false, timer: 0, kitTitle: 'Trận đấu' };
     let questions = [];
     let timerInt, targetCell = null;
     const urlId = new URLSearchParams(window.location.search).get('id');
 
-    window.onload = () => {
-        // ĐÃ TẮT YÊU CẦU ĐĂNG NHẬP ĐỂ TEST GAME DỄ DÀNG HƠN
-        if(urlId) loadGame(urlId);
-        else fetchKits();
-    };
+    window.onload = () => { if(urlId) loadGame(urlId); else fetchKits(); };
 
     function toast(msg, type='info') {
         const div = document.createElement('div');
@@ -203,7 +270,7 @@
                 list.appendChild(btn);
             });
             if(snap.empty) list.innerHTML = "<div style='color:white'>Không tìm thấy bộ câu hỏi nào.</div>";
-        } catch(e) { console.error(e); list.innerHTML = "Lỗi kết nối Firebase (Vui lòng kiểm tra tab Rules)"; }
+        } catch(e) { list.innerHTML = "Lỗi kết nối Firebase (Vui lòng kiểm tra tab Rules)"; }
     }
 
     async function loadGame(id) {
@@ -212,11 +279,6 @@
             if(!doc.exists) return toast('Lỗi dữ liệu', 'error');
             const d = doc.data();
             state.kitTitle = d.title;
-            
-            if(d.mapSize === 'large') { ROWS=10; COLS=8; }
-            else if(d.mapSize === 'small') { ROWS=5; COLS=5; }
-            else { ROWS=7; COLS=6; }
-
             if(d.timeLimit) TIME = parseInt(d.timeLimit)*60;
             state.timer = TIME;
 
@@ -227,14 +289,11 @@
                 if(!q) return null;
                 let qImg = q.qMedia || q.imageUrl || q.image || (typeof q.image==='object'?q.image.url:"") || "";
                 let rawOpts = q.options || q.choices || ["A","B","C","D"];
-                let opts = rawOpts.map(o => {
-                    if (typeof o === 'string') return { text: o, media: "" };
-                    return { text: o.text || "...", media: o.media || "" };
-                });
+                let opts = rawOpts.map(o => (typeof o === 'string') ? { text: o, media: "" } : { text: o.text || "...", media: o.media || "" });
                 return { text: q.text||q.question, opts: opts, correct: q.correctIndex||0, img: qImg };
             }).filter(q=>q);
             
-            if(!questions.length) questions=[{text:"Chiếm ô này?", opts:[{text:"Có"},{text:"Không"}], correct:0}];
+            if(!questions.length) questions=[{text:"Bạn có muốn chiếm ô này?", opts:[{text:"Có"},{text:"Không"}], correct:0}];
 
             document.getElementById('startScreen').classList.remove('open');
             initBoard();
@@ -255,26 +314,20 @@
 
             for(let c=0; c<COLS; c++) {
                 const hex = document.createElement('div');
-                let type = 'grass', pts = Math.floor(Math.random() * 20) + 10, owner = null;
-                let distToRed = r + c, distToBlue = (ROWS - 1 - r) + (COLS - 1 - c);
-                let isSafeZone = (distToRed <= 1) || (distToBlue <= 1);
+                let cellData = FIXED_MAP[r][c];
+                let type = 'grass', pts = 10, owner = null;
 
-                if(r===0 && c===0) { type='base'; owner='red'; pts=0; }
-                else if(r===ROWS-1 && c===COLS-1) { type='base'; owner='blue'; pts=0; }
-                else if (!isSafeZone) {
-                    const rnd = Math.random();
-                    if(rnd < TERRAIN_RATES.water) type = 'water';
-                    else if(rnd < TERRAIN_RATES.water + TERRAIN_RATES.forest) type = 'forest';
-                    else if(rnd < TERRAIN_RATES.water + TERRAIN_RATES.forest + TERRAIN_RATES.mountain) type = 'mountain';
-                }
+                if (cellData === 'R') { type = 'base'; owner = 'red'; pts = 0; }
+                else if (cellData === 'B') { type = 'base'; owner = 'blue'; pts = 0; }
+                else if (cellData === 'W') { type = 'water'; }
+                else if (cellData === 'M') { type = 'mountain'; }
 
                 hex.className = `hex ${type}`;
                 if(type === 'base') {
                     hex.classList.add(`base-${owner}`);
                     hex.innerHTML = '<i class="fa-brands fa-fort-awesome icon-lg"></i>';
-                } else if(type === 'water') hex.innerHTML = '<i class="fa-solid fa-water" style="opacity:0.6; font-size:1.5rem;"></i>';
-                else if(type === 'forest') hex.innerHTML = '<i class="fa-solid fa-tree" style="opacity:0.6; font-size:1.5rem; color:#1b5e20;"></i>';
-                else if(type === 'mountain') hex.innerHTML = '<i class="fa-solid fa-mountain" style="opacity:0.6; font-size:1.5rem;"></i>';
+                } else if(type === 'water') hex.innerHTML = '<i class="fa-solid fa-water" style="opacity:0.6; font-size:1.5rem; color:#81d4fa;"></i>';
+                else if(type === 'mountain') hex.innerHTML = '<i class="fa-solid fa-mountain" style="opacity:0.6; font-size:1.5rem; color:#b0bec5;"></i>';
                 else hex.innerHTML = `<span class="hex-content">${pts}</span>`;
 
                 hex.onclick = () => onHexClick(r, c);
@@ -285,23 +338,49 @@
             state.grid.push(rowData);
         }
         
-        const scale = Math.min(1, 400 / (ROWS * 60)); 
-        document.getElementById('mapContainer').style.transform = `scale(${scale < 0.5 ? 0.5 : (scale > 1 ? 1 : scale)})`;
+        // Tự động thu phóng Map để không bị tràn màn hình
+        const scale = Math.min(1, window.innerWidth / (COLS * 95 + 50)); 
+        document.getElementById('mapContainer').style.transform = `scale(${scale < 0.5 ? 0.5 : scale})`;
+    }
+
+    // Hex Math: Tính ô liền kề khớp 100% với CSS So Le (Staggered)
+   function getNeighbors(r, c) {
+        // Trong CSS, :nth-child(even) áp dụng cho các hàng thứ 2, 4, 6... 
+        // Trong mảng JS (index bắt đầu từ 0), đây tương ứng với các hàng có r = 1, 3, 5... (tức là r % 2 !== 0)
+        // Khi hàng r bị đẩy sang phải (margin-left: 91px), các ô lân cận của nó sẽ thay đổi.
+        
+        const isIndented = (r % 2 !== 0); 
+        
+        // CÔNG THỨC MỚI KHỚP VỚI CSS CỦA BẠN:
+        const offsets = isIndented
+            // Nếu là dòng bị thụt vào (r lẻ: 1, 3, 5)
+            ? [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]]
+            // Nếu là dòng không bị thụt (r chẵn: 0, 2, 4)
+            : [[-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]];
+
+        let res = [];
+        offsets.forEach(o => {
+            const nr = r + o[0], nc = c + o[1];
+            if(nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                res.push({r: nr, c: nc});
+            }
+        });
+        return res;
+    }
+    function isNeighborToFriendly(r, c, color) {
+        return getNeighbors(r, c).some(n => state.grid[n.r][n.c].owner === color);
     }
 
     function onHexClick(r, c) {
         if(!state.active) return;
         const cell = state.grid[r][c];
-        if(['water','forest','mountain','base'].includes(cell.type)) return toast('Địa hình hiểm trở, không thể chiếm!', 'error');
+        
+        if(['water','mountain','base'].includes(cell.type)) return toast('Không thể tương tác với ô này!', 'error');
         if(cell.owner === state.turn) return toast('Ô này đã là của bạn!', 'info');
-        if(!isNeighborToFriendly(r, c, state.turn)) return toast('Phải chiếm ô nằm cạnh lãnh thổ của bạn!', 'error');
+        if(!isNeighborToFriendly(r, c, state.turn)) return toast('Phải đánh chiếm ô nằm giáp ranh với lãnh thổ của bạn!', 'error');
 
         targetCell = {r, c};
         openQuiz();
-    }
-
-    function isNeighborToFriendly(r, c, color) {
-        return getNeighbors(r, c).some(n => state.grid[n.r][n.c].owner === color);
     }
 
     function openQuiz() {
@@ -329,114 +408,81 @@
         modal.classList.add('open');
     }
 
-    function handleAnswer(isCorrect) {
+    function captureSingleCell(r, c, team) {
+        const cell = state.grid[r][c];
+        if (cell.type !== 'grass') return;
+
+        if (cell.owner !== team) {
+            // Trừ điểm của phe bị mất ô
+            if (cell.owner) {
+                state.scores[cell.owner] -= cell.pts;
+                cell.dom.classList.remove(cell.owner); // XÓA MÀU CŨ
+            }
+
+            // Cộng điểm cho phe chiếm được
+            state.scores[team] += cell.pts;
+            cell.owner = team;
+            
+            // Cập nhật DOM và kích hoạt animation
+            cell.dom.classList.add(team); // THÊM MÀU MỚI
+            cell.dom.className = `hex ${cell.type} ${team} captured-anim`;
+            setTimeout(() => {
+                if(cell.dom) cell.dom.classList.remove('captured-anim');
+            }, 600);
+        }
+    }
+function handleAnswer(isCorrect) {
         document.getElementById('quizModal').classList.remove('open');
         
         if(isCorrect) {
-            const cell = state.grid[targetCell.r][targetCell.c];
-            const pts = cell.pts;
+            // 1. Chiếm ô vừa chọn
+            captureSingleCell(targetCell.r, targetCell.c, state.turn);
+            toast(`Chiếm đóng thành công!`, 'success');
 
-            if(cell.owner && cell.owner !== state.turn) {
-                state.scores[cell.owner] -= pts;
-                toast(`CƯỚP ${pts} ĐIỂM!`, 'success');
-            } else toast(`+${pts} ĐIỂM`, 'success');
+            // 2. Kích hoạt kỹ năng: Kiểm tra xem có cụm lính địch nào bị vây không thì nuốt luôn
+            captureSurroundedEnemies();
 
-            cell.owner = state.turn;
-            cell.dom.className = `hex ${cell.type} ${state.turn}`;
-            state.scores[state.turn] += pts;
-
+            // 3. Kiểm tra bao vây căn cứ địch
             const enemyColor = state.turn === 'red' ? 'blue' : 'red';
-            checkCapture(enemyColor);
-
             const enemyBasePos = enemyColor === 'red' ? {r:0, c:0} : {r:ROWS-1, c:COLS-1};
+            
             if(checkBaseSiege(enemyBasePos, enemyColor)) {
-                state.scores[state.turn] += 1; 
-                return endGame(state.turn.toUpperCase(), "CĂN CỨ ĐỊCH ĐÃ THẤT THỦ!");
+                return endGame(state.turn.toUpperCase(), "CĂN CỨ ĐỊCH ĐÃ BỊ BAO VÂY HOÀN TOÀN!");
             }
+            
             switchTurn();
         } else {
             toast('Sai rồi! Mất lượt.', 'error');
             switchTurn();
         }
-    }
-
-    function checkCapture(targetColor) {
+    }    function checkBaseSiege(basePos, baseColor) {
+        let queue = [{r: basePos.r, c: basePos.c}];
         let visited = new Set();
-        let capturedCount = 0;
+        visited.add(`${basePos.r},${basePos.c}`);
 
-        for(let r=0; r<ROWS; r++) {
-            for(let c=0; c<COLS; c++) {
-                const cell = state.grid[r][c];
-                if(cell.owner === targetColor && cell.type !== 'base' && !visited.has(`${r},${c}`)) {
-                    const group = getGroup(r, c, targetColor, visited);
-                    if(!group.hasLiberty) {
-                        group.cells.forEach(t => {
-                            state.scores[targetColor] -= t.pts;
-                            state.scores[state.turn] += t.pts;
-                            t.owner = state.turn;
-                            t.dom.className = `hex ${t.type} ${state.turn}`;
-                            t.dom.classList.add('die'); 
-                            setTimeout(()=>t.dom.classList.remove('die'), 1000);
-                            capturedCount++;
-                        });
-                    }
+        while (queue.length > 0) {
+            let curr = queue.shift();
+            let neighbors = getNeighbors(curr.r, curr.c);
+
+            for (let n of neighbors) {
+                let nCell = state.grid[n.r][n.c];
+
+                // Nếu từ căn cứ hoặc lính bảo vệ chạm được vào ô cỏ trống -> Căn cứ AN TOÀN
+                if (nCell.type === 'grass' && !nCell.owner) {
+                    return false; 
+                }
+
+                // Tiếp tục loang ra các ô lính của phe mình để tìm đường thoát
+                if (nCell.type === 'grass' && nCell.owner === baseColor && !visited.has(`${n.r},${n.c}`)) {
+                    visited.add(`${n.r},${n.c}`);
+                    queue.push(n);
                 }
             }
         }
-        if(capturedCount > 0) setTimeout(() => toast(`VÂY BẮT ${capturedCount} Ô!`, 'success'), 500);
-    }
-
-    function checkBaseSiege(pos, baseColor) {
-        const neighbors = getNeighbors(pos.r, pos.c);
-        let liberties = 0;
-        for (let n of neighbors) {
-            const nc = state.grid[n.r][n.c];
-            if (nc.owner === null && nc.type === 'grass') liberties++; 
-            if (nc.owner === baseColor) liberties++; 
-        }
-        return liberties === 0;
-    }
-
-    function getGroup(startR, startC, color, visitedGlobal) {
-        let stack = [{r: startR, c: startC}];
-        let cells = [];
-        let hasLiberty = false; 
-        let visitedLocal = new Set(); 
         
-        visitedGlobal.add(`${startR},${startC}`);
-        visitedLocal.add(`${startR},${startC}`);
-
-        while(stack.length > 0) {
-            const curr = stack.pop();
-            cells.push(state.grid[curr.r][curr.c]);
-            const neighbors = getNeighbors(curr.r, curr.c);
-            
-            for(let n of neighbors) {
-                const nc = state.grid[n.r][n.c];
-                if(nc.type === 'grass' && nc.owner === null) hasLiberty = true;
-                if(nc.owner === color && !visitedLocal.has(`${n.r},${n.c}`) && nc.type !== 'base') {
-                    visitedGlobal.add(`${n.r},${n.c}`);
-                    visitedLocal.add(`${n.r},${n.c}`);
-                    stack.push(n);
-                }
-            }
-        }
-        return { cells, hasLiberty };
+        // Nếu duyệt hết cụm nối liền căn cứ mà không thấy ô trống -> BỊ BAO VÂY
+        return true; 
     }
-
-    function getNeighbors(r, c) {
-        const parity = r % 2; 
-        const offsets = (parity === 0) 
-            ? [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]] 
-            : [[-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]];
-        let res = [];
-        offsets.forEach(o => {
-            const nr = r+o[0], nc = c+o[1];
-            if(nr>=0 && nr<ROWS && nc>=0 && nc<COLS) res.push({r:nr, c:nc});
-        });
-        return res;
-    }
-
     function startGame() {
         state.active = true;
         timerInt = setInterval(() => {
@@ -480,17 +526,84 @@
     async function saveAndReset() {
         try {
             const user = auth.currentUser;
+            const emailToSave = user ? user.email : 'Test_Player';
+            const idToSave = user ? user.uid : 'guest_' + Math.floor(Math.random()*10000);
+
             await db.collection('game_results').add({
-                kitId: urlId || 'unknown', kitTitle: state.kitTitle, redScore: state.scores.red, blueScore: state.scores.blue,
+                kitId: urlId || 'unknown', 
+                kitTitle: state.kitTitle || 'Test', 
+                redScore: state.scores.red, 
+                blueScore: state.scores.blue,
                 winner: state.scores.red > state.scores.blue ? 'RED' : (state.scores.red < state.scores.blue ? 'BLUE' : 'DRAW'),
-                playedAt: new Date().toISOString(), playerEmail: user ? user.email : 'Test', playerId: user ? user.uid : 'test'
+                playedAt: new Date().toISOString(), 
+                playerEmail: emailToSave, 
+                playerId: idToSave
             });
             toast('Đã lưu kết quả!', 'success');
-            setTimeout(() => location.reload(), 1000);
+            setTimeout(() => location.reload(), 1500);
         } catch(e) {
             console.error(e);
-            toast('Lỗi lưu kết quả', 'error');
-            setTimeout(() => location.reload(), 1000);
+            toast('Lỗi lưu kết quả! Vui lòng kiểm tra Firestore Rules nếu bạn đang test Guest.', 'error');
+            setTimeout(() => location.reload(), 2500);
+        }
+    }
+// Hàm tìm "đường thoát" cho một cụm ô
+    function hasLiberty(cluster) {
+        for (let pos of cluster) {
+            let neighbors = getNeighbors(pos.r, pos.c);
+            for (let n of neighbors) {
+                let nCell = state.grid[n.r][n.c];
+                // Nếu chạm vào ô cỏ chưa có chủ -> Cụm ô này an toàn (có đường sống)
+                if (nCell.type === 'grass' && !nCell.owner) {
+                    return true; 
+                }
+            }
+        }
+        return false; // Bị bao vây hoàn toàn bởi địch, nước, núi hoặc viền map
+    }
+
+    // Hàm quyét và chiếm các ô địch bị bao vây
+    function captureSurroundedEnemies() {
+        const enemy = state.turn === 'red' ? 'blue' : 'red';
+        let visited = new Set();
+
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const cell = state.grid[r][c];
+                
+                // Tìm thấy ô của địch chưa được kiểm tra
+                if (cell.type === 'grass' && cell.owner === enemy && !visited.has(`${r},${c}`)) {
+                    
+                    // Thuật toán loang (Flood Fill) để gom toàn bộ các ô liền kề của địch thành 1 cụm
+                    let cluster = [];
+                    let queue = [{r, c}];
+                    visited.add(`${r},${c}`);
+
+                    while (queue.length > 0) {
+                        let curr = queue.shift();
+                        cluster.push(curr);
+
+                        let neighbors = getNeighbors(curr.r, curr.c);
+                        for (let n of neighbors) {
+                            let nCell = state.grid[n.r][n.c];
+                            if (nCell.type === 'grass' && nCell.owner === enemy && !visited.has(`${n.r},${n.c}`)) {
+                                visited.add(`${n.r},${n.c}`);
+                                queue.push(n);
+                            }
+                        }
+                    }
+
+                    // Nếu toàn bộ cụm ô địch này KHÔNG có đường thoát -> Phe ta chiếm tất cả
+                    if (!hasLiberty(cluster)) {
+                        cluster.forEach(pos => {
+                            captureSingleCell(pos.r, pos.c, state.turn);
+                        });
+                        if (cluster.length > 0) {
+                            toast(`Tuyệt vời! Đã bao vây và tiêu diệt ${cluster.length} lính địch!`, 'success');
+                        }
+                    }
+                }
+            }
         }
     }
 </script>
