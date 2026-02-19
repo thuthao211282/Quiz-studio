@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ôn Tập | Quiz Studio </title>
+    <title>Ôn Tập | Quiz Studio</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -36,7 +36,7 @@
             backdrop-filter: blur(8px); z-index: -1;
         }
 
-        /* Nav Header */
+        /* --- NAV HEADER --- */
         .nav-header {
             width: 100%; max-width: 900px;
             display: flex; justify-content: space-between; align-items: center;
@@ -47,128 +47,137 @@
             background: var(--glass-bg); padding: 12px 25px; border-radius: 15px;
             text-decoration: none; color: var(--primary); font-weight: 700;
             display: flex; align-items: center; gap: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .btn-home:hover { transform: translateX(-5px); background: white; }
+        .btn-home:hover { 
+            transform: translateX(-5px) scale(1.05); 
+            background: white; 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
 
-        /* ======================================= */
-        /* CSS CHỌN CHẾ ĐỘ CHƠI                    */
-        /* ======================================= */
+        /* --- CHỌN CHẾ ĐỘ CHƠI --- */
         .mode-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
-            display: flex; justify-content: center; align-items: center; z-index: 50;
+            display: none; justify-content: center; align-items: center; z-index: 50;
         }
         .mode-box {
             background: white; padding: 40px; border-radius: 20px; text-align: center;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 500px; width: 90%;
+            animation: bounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .mode-box h3 { font-size: 1.8rem; color: var(--text-dark); margin-bottom: 25px; }
+        
         .mode-btn {
             display: flex; align-items: center; justify-content: center; gap: 15px;
             width: 100%; padding: 18px; margin-bottom: 15px; border-radius: 15px;
-            font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: 0.3s;
+            font-size: 1.2rem; font-weight: 600; cursor: pointer; 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: 2px solid var(--primary); background: white; color: var(--primary);
         }
-        .mode-btn:hover { background: var(--primary); color: white; transform: translateY(-3px); }
+        .mode-btn:hover { 
+            background: var(--primary); color: white; 
+            transform: translateY(-5px) scale(1.02); 
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+        }
         .mode-btn i { font-size: 1.5rem; }
 
-        /* ======================================= */
-        /* CSS CHẾ ĐỘ 1: LẬT 9 Ô HÌNH (GIỮ NGUYÊN) */
-        /* ======================================= */
+        /* --- LẬT 9 Ô CHỮ HÌNH --- */
         .game-container {
-            display: none; /* Ẩn đi chờ người dùng chọn */
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            display: none; grid-template-columns: repeat(3, 1fr); gap: 20px;
             width: 100%; max-width: 900px;
         }
 
-        .card {
-            height: 200px; perspective: 1000px; cursor: pointer;
-            transition: opacity 0.5s ease;
-        }
-
-        .card-inner {
-            position: relative; width: 100%; height: 100%;
-            text-align: center; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-            transform-style: preserve-3d;
-        }
-
-        .card.is-flipped .card-inner { transform: rotateY(180deg); }
+        .card { height: 200px; perspective: 1000px; cursor: pointer; transition: opacity 0.5s ease; }
         .card.hidden { opacity: 0; pointer-events: none; }
 
-        .card-front, .card-back {
-            position: absolute; width: 100%; height: 100%;
-            backface-visibility: hidden; border-radius: 20px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding: 15px; border: 2px solid var(--glass-border);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        .card-inner {
+            position: relative; width: 100%; height: 100%; text-align: center; transform-style: preserve-3d;
+            /* Hiệu ứng lật nảy mượt mà */
+            transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
+        .card.is-flipped .card-inner { transform: rotateY(180deg); }
 
-        /* Mặt trước: Chứa hình ảnh */
+        .card:hover .card-inner { box-shadow: 0 15px 30px rgba(0,0,0,0.2); border-radius: 20px; }
+
+        .card-front, .card-back {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 15px; border: 2px solid var(--glass-border); box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
         .card-front { background: white; }
         .card-front img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
-
-        /* Mặt sau: Chứa chữ */
         .card-back {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white; transform: rotateY(180deg);
-            font-size: 1.2rem; font-weight: 700;
+            color: white; transform: rotateY(180deg); font-size: 1.2rem; font-weight: 700;
         }
 
-        /* CSS khi thẻ đã được xem (Chuyển đỏ) */
         .card.is-viewed .card-front { border: 3px solid #ef4444 !important; background-color: #fef2f2 !important; }
         .card.is-viewed .card-back { background: linear-gradient(135deg, #ef4444, #b91c1c) !important; }
 
-
-        /* ======================================= */
-        /* CSS CHẾ ĐỘ 2: FLASHCARD TRÍ NHỚ         */
-        /* ======================================= */
+        /* --- FLASHCARD TRÍ NHỚ --- */
         .flashcard-wrapper {
-            display: none; /* Ẩn mặc định */
-            flex-direction: column; align-items: center; width: 100%; max-width: 700px;
+            display: none; flex-direction: column; align-items: center; width: 100%; max-width: 700px;
         }
-        .fc-card {
-            width: 100%; height: 400px; perspective: 1000px; cursor: pointer; margin-bottom: 30px;
-        }
+        .fc-card { width: 100%; height: 400px; perspective: 1000px; cursor: pointer; margin-bottom: 30px; }
         .fc-inner {
-            position: relative; width: 100%; height: 100%; text-align: center;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d;
+            position: relative; width: 100%; height: 100%; text-align: center; transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        .fc-card.is-flipped .fc-inner { transform: rotateY(180deg); }
-        
+        .fc-card.is-flipped .fc-inner { transform: rotateY(180deg) scale(1.02); }
+        .fc-card:hover .fc-inner { box-shadow: 0 15px 45px rgba(37, 99, 235, 0.2); border-radius: 25px; }
+
         .fc-front, .fc-back {
-            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
-            border-radius: 25px; display: flex; flex-direction: column; justify-content: center; align-items: center;
-            padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); background: white;
-            border: 2px solid var(--glass-border);
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 25px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); background: white; border: 2px solid var(--glass-border);
         }
         .fc-front h3 { font-size: 1.5rem; color: var(--text-dark); margin-bottom: 15px; }
         .fc-front img { max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 10px; }
-        
         .fc-back { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; transform: rotateY(180deg); }
         .fc-back h2 { font-size: 2.5rem; margin: 0; }
 
         .fc-controls {
             display: flex; align-items: center; justify-content: space-between; width: 100%;
-            background: var(--glass-bg); padding: 15px 30px; border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            background: var(--glass-bg); padding: 15px 30px; border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.1);
         }
         .fc-btn {
             background: var(--primary); color: white; border: none; padding: 12px 25px;
-            border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: 0.3s;
+            border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .fc-btn:hover { background: #1d4ed8; transform: scale(1.05); }
+        .fc-btn:hover { background: #1d4ed8; transform: translateY(-3px) scale(1.05); box-shadow: 0 5px 15px rgba(29, 78, 216, 0.4); }
         .fc-counter { font-size: 1.2rem; font-weight: 700; color: var(--text-dark); }
 
+        /* --- LOADING OVERLAY --- */
         .loading-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.8);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: white; z-index: 100;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; color: white;
         }
 
-        @media (max-width: 768px) {
-            .game-container { grid-template-columns: repeat(2, 1fr); }
+        /* --- CUSTOM ALERT MODAL --- */
+        .custom-modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+            display: none; justify-content: center; align-items: center; z-index: 9999;
+            backdrop-filter: blur(8px); animation: fadeIn 0.3s ease;
         }
+        .custom-modal {
+            background: white; padding: 35px; border-radius: 25px; text-align: center;
+            max-width: 400px; width: 90%; transform: scale(0.7); 
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+        .custom-modal-overlay.show { display: flex; }
+        .custom-modal-overlay.show .custom-modal { transform: scale(1); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes bounceIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            60% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        @media (max-width: 768px) { .game-container { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
 <body>
@@ -178,7 +187,7 @@
         <h2 style="color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5);" id="gameTitle">Đang tải...</h2>
     </div>
 
-    <div id="modeSelection" class="mode-overlay" style="display: none;">
+    <div id="modeSelection" class="mode-overlay">
         <div class="mode-box">
             <h3>Bạn muốn ôn tập theo cách nào?</h3>
             <button class="mode-btn" onclick="startGridMode()">
@@ -195,10 +204,8 @@
     <div id="flashcardMode" class="flashcard-wrapper">
         <div class="fc-card" id="fcCard" onclick="flipFlashcard()">
             <div class="fc-inner" id="fcInner">
-                <div class="fc-front" id="fcFront">
-                    </div>
-                <div class="fc-back" id="fcBack">
-                    </div>
+                <div class="fc-front" id="fcFront"></div>
+                <div class="fc-back" id="fcBack"></div>
             </div>
         </div>
         <div class="fc-controls">
@@ -213,6 +220,15 @@
         <p style="margin-top: 20px; font-weight: 600;">Đang chuẩn bị dữ liệu...</p>
     </div>
 
+    <div id="customAlert" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <i class="fa-solid fa-circle-exclamation" style="font-size: 4rem; color: var(--primary); margin-bottom: 20px;"></i>
+            <h3 id="alertTitle" style="margin-bottom: 10px; font-size: 1.5rem;">Thông báo</h3>
+            <p id="alertMsg" style="color: #666; margin-bottom: 25px; line-height: 1.6;"></p>
+            <button class="mode-btn" onclick="closeAlert()" style="margin-bottom: 0;">Đã hiểu</button>
+        </div>
+    </div>
+
 <script>
     // --- CẤU HÌNH FIREBASE ---
     const firebaseConfig = { 
@@ -220,16 +236,32 @@
         authDomain: "thaococo-70cc7.firebaseapp.com", 
         projectId: "thaococo-70cc7" 
     };
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
     const db = firebase.firestore();
     const auth = firebase.auth(); 
 
     const urlParams = new URLSearchParams(window.location.search);
     const kitId = urlParams.get('id');
     
-    // Biến lưu dữ liệu gốc
     let rawQuestions = []; 
-    let currentFcIndex = 0; // Biến đếm cho Flashcard
+    let currentFcIndex = 0; 
+    let alertCallback = null; // Dùng để gọi hành động sau khi đóng popup
+
+    // --- HỆ THỐNG POPUP THÔNG BÁO ---
+    function showAlert(msg, title = "Thông báo", callback = null) {
+        document.getElementById('alertTitle').innerText = title;
+        document.getElementById('alertMsg').innerText = msg;
+        document.getElementById('customAlert').classList.add('show');
+        alertCallback = callback;
+    }
+
+    function closeAlert() {
+        document.getElementById('customAlert').classList.remove('show');
+        if (alertCallback) {
+            alertCallback();
+            alertCallback = null;
+        }
+    }
 
     // --- KIỂM TRA ĐĂNG NHẬP ---
     auth.onAuthStateChanged((user) => {
@@ -237,17 +269,27 @@
             fetchData();
         } else {
             document.getElementById('loading').style.display = 'none';
-            alert("Vui lòng đăng nhập để xem bộ câu hỏi này!");
-            window.location.href = "main.html"; 
+            showAlert("Vui lòng đăng nhập để xem bộ câu hỏi này!", "Yêu cầu đăng nhập", () => {
+                window.location.href = "main.html"; // Trả về trang chủ/login
+            });
         }
     });
 
-    // --- HÀM TẢI DỮ LIỆU TỪ FIREBASE ---
+    // --- TẢI DỮ LIỆU TỪ FIREBASE ---
     async function fetchData() {
-        if (!kitId) { window.location.href = "main.html"; return; }
+        if (!kitId) { 
+            window.location.href = "main.html"; 
+            return; 
+        }
         try {
             const doc = await db.collection('kits').doc(kitId).get();
-            if (!doc.exists) return;
+            if (!doc.exists) {
+                document.getElementById('loading').style.display = 'none';
+                showAlert("Bộ câu hỏi này không tồn tại hoặc đã bị xóa!", "Lỗi dữ liệu", () => {
+                    window.location.href = "main.html";
+                });
+                return;
+            }
 
             const kit = doc.data();
             document.getElementById('gameTitle').innerText = kit.title || "Trò Chơi Ôn Tập";
@@ -259,24 +301,30 @@
             if (rawQuestions.length === 0) {
                 document.getElementById('gameTitle').innerText = "Bộ câu hỏi trống!";
                 document.getElementById('loading').style.display = 'none';
+                showAlert("Bộ câu hỏi này chưa có nội dung, hãy quay lại sau nhé.", "Danh sách trống", () => {
+                    window.location.href = "main.html";
+                });
                 return;
             }
 
-            // Tải xong dữ liệu -> Tắt Loading, Bật bảng chọn chế độ
+            // Dữ liệu OK
             document.getElementById('loading').style.display = 'none';
             document.getElementById('modeSelection').style.display = 'flex';
 
-        } catch (error) { console.error("Lỗi:", error); }
+        } catch (error) { 
+            console.error("Lỗi:", error); 
+            document.getElementById('loading').style.display = 'none';
+            showAlert("Có lỗi xảy ra: " + error.message, "Lỗi hệ thống");
+        }
     }
 
-    // =========================================================================
-    // CHẾ ĐỘ 1: LẬT 9 Ô CHỮ HÌNH (DÙNG CHÍNH XÁC LOGIC GAME CŨ CỦA BẠN)
-    // =========================================================================
+    // ==========================================
+    // CHẾ ĐỘ 1: LẬT 9 Ô CHỮ HÌNH
+    // ==========================================
     function startGridMode() {
         document.getElementById('modeSelection').style.display = 'none';
-        document.getElementById('gameGrid').style.display = 'grid'; // Hiển thị 9 ô
+        document.getElementById('gameGrid').style.display = 'grid';
 
-        // Nhân bản & Xáo trộn 9 ô
         let displayQuestions = [];
         if (rawQuestions.length >= 9) {
             displayQuestions = rawQuestions.slice(0, 9);
@@ -286,28 +334,22 @@
             }
         }
         displayQuestions.sort(() => Math.random() - 0.5); 
-        
         renderCards(displayQuestions);
     }
 
     function renderCards(questions) {
         const gameGrid = document.getElementById('gameGrid');
         gameGrid.innerHTML = '';
-        let isIntroPlaying = true; // Khóa click lúc đang chiếu intro
+        let isIntroPlaying = true; 
 
         questions.forEach((q) => {
             const card = document.createElement('div');
             card.className = 'card';
             
-            // TÌM HÌNH ẢNH CÂU ĐỀ
-            let imageHTML = '';
-            if (q.qMedia && q.qMedia !== "") {
-                imageHTML = `<img src="${q.qMedia}" alt="Câu hỏi" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
-            } else {
-                imageHTML = `<p style="color: #64748b; font-size: 1.2rem; font-weight: bold; padding: 20px;">Không có hình ảnh</p>`;
-            }
+            let imageHTML = q.qMedia && q.qMedia !== "" 
+                ? `<img src="${q.qMedia}" alt="Câu hỏi">` 
+                : `<p style="color: #64748b; font-size: 1.2rem; font-weight: bold; padding: 20px;">Không có hình ảnh</p>`;
 
-            // TÌM ĐÁP ÁN ĐÚNG
             let answerText = "Chưa có đáp án";
             if (q.correctIndices && q.correctIndices.length > 0 && q.choices) {
                 const correctIndex = q.correctIndices[0]; 
@@ -316,67 +358,48 @@
                 }
             }
 
-            // Tạo khối HTML (Giống hệt code bạn gửi)
             card.innerHTML = `
                 <div class="card-inner">
-                    <div class="card-front" style="background: white; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden;">
-                        ${imageHTML}
-                    </div>
-                    <div class="card-back" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 15px;">
-                        <p style="font-size: 1.4rem; font-weight: bold; margin: 0;">${answerText}</p>
-                    </div>
+                    <div class="card-front" style="overflow: hidden;">${imageHTML}</div>
+                    <div class="card-back"><p style="margin: 0;">${answerText}</p></div>
                 </div>
             `;
 
-            // XỬ LÝ CLICK CỦA NGƯỜI CHƠI (TỰ ĐỘNG BIẾN MẤT SAU 5 GIÂY)
             card.onclick = function() {
                 if (isIntroPlaying || this.classList.contains('hidden') || this.classList.contains('is-flipped')) return;
-
-                this.classList.add('is-viewed'); 
-                this.classList.add('is-flipped'); 
-
-                setTimeout(() => {
-                    this.classList.add('hidden');
-                }, 5000); // 5000ms = 5 giây
+                
+                this.classList.add('is-viewed', 'is-flipped'); 
+                setTimeout(() => { this.classList.add('hidden'); }, 5000); // Tự biến mất sau 5s
             };
 
             gameGrid.appendChild(card);
         });
 
-        // --- HIỆU ỨNG INTRO (LẦN LƯỢT TỪNG Ô ĐỢI 1.3S CỦA BẠN) ---
+        // Intro: Lật lên xuống lần lượt
         const allCards = document.querySelectorAll('.card');
-        const showDuration = 1000;      // Thời gian mở xem: 1 giây
-        const transitionDelay = 300;    // Thời gian chờ lật úp xuống: 0.3 giây
-        const timePerCard = showDuration + transitionDelay; // 1.3 giây
+        const showDuration = 1000;      
+        const transitionDelay = 300;    
+        const timePerCard = showDuration + transitionDelay;
 
         allCards.forEach((card, index) => {
             const delayStart = index * timePerCard;
-
-            // Lật ô lên
-            setTimeout(() => {
-                card.classList.add('is-flipped');
-            }, delayStart);
-
-            // Úp ô xuống
+            setTimeout(() => { card.classList.add('is-flipped'); }, delayStart);
+            
             setTimeout(() => {
                 card.classList.remove('is-flipped');
-                
-                // Mở khóa click sau thẻ cuối
                 if (index === allCards.length - 1) {
-                    setTimeout(() => {
-                        isIntroPlaying = false; 
-                    }, transitionDelay); 
+                    setTimeout(() => { isIntroPlaying = false; }, transitionDelay); 
                 }
             }, delayStart + showDuration); 
         });
     }
 
-    // =========================================================================
-    // CHẾ ĐỘ 2: FLASHCARD TRÍ NHỚ (HOÀN TOÀN MỚI)
-    // =========================================================================
+    // ==========================================
+    // CHẾ ĐỘ 2: FLASHCARD TRÍ NHỚ
+    // ==========================================
     function startFlashcardMode() {
         document.getElementById('modeSelection').style.display = 'none';
-        document.getElementById('flashcardMode').style.display = 'flex'; // Hiện Flashcard
+        document.getElementById('flashcardMode').style.display = 'flex';
         currentFcIndex = 0;
         updateFlashcardUI();
     }
@@ -385,47 +408,32 @@
         const q = rawQuestions[currentFcIndex];
         const fcInner = document.getElementById('fcInner');
         
-        // Đảm bảo thẻ luôn úp lại khi chuyển câu hỏi
-        fcInner.classList.remove('is-flipped');
+        fcInner.classList.remove('is-flipped'); // Úp thẻ lại khi sang thẻ mới
 
         setTimeout(() => {
-            // MẶT TRƯỚC: Hiện Câu hỏi + Hình (nếu có)
             let questionText = q.question || q.text || "Câu hỏi trống";
             let frontHTML = `<h3>${questionText}</h3>`;
-            if (q.qMedia && q.qMedia !== "") {
-                frontHTML += `<img src="${q.qMedia}" alt="Hình câu hỏi">`;
-            }
+            if (q.qMedia && q.qMedia !== "") frontHTML += `<img src="${q.qMedia}" alt="Hình câu hỏi">`;
             document.getElementById('fcFront').innerHTML = frontHTML;
 
-            // MẶT SAU: Hiện Đáp án
             let answerText = "Chưa có đáp án";
             if (q.correctIndices && q.correctIndices.length > 0 && q.choices) {
                 const correctIndex = q.correctIndices[0]; 
                 if (q.choices[correctIndex]) answerText = q.choices[correctIndex].text || "Không có chữ";
             }
             document.getElementById('fcBack').innerHTML = `<h2>${answerText}</h2>`;
-
-            // Cập nhật bộ đếm số trang
             document.getElementById('fcCounter').innerText = `${currentFcIndex + 1} / ${rawQuestions.length}`;
-        }, 150); 
+        }, 200); // Chờ 200ms để hoạt ảnh úp diễn ra xong rồi mới đổi chữ
     }
 
-    function flipFlashcard() {
-        document.getElementById('fcCard').classList.toggle('is-flipped');
-    }
-
+    function flipFlashcard() { document.getElementById('fcCard').classList.toggle('is-flipped'); }
+    
     function nextCard() {
-        if (currentFcIndex < rawQuestions.length - 1) {
-            currentFcIndex++;
-            updateFlashcardUI();
-        }
+        if (currentFcIndex < rawQuestions.length - 1) { currentFcIndex++; updateFlashcardUI(); }
     }
-
+    
     function prevCard() {
-        if (currentFcIndex > 0) {
-            currentFcIndex--;
-            updateFlashcardUI();
-        }
+        if (currentFcIndex > 0) { currentFcIndex--; updateFlashcardUI(); }
     }
 </script>
 </body>
