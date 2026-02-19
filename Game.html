@@ -153,9 +153,14 @@
                 <div style="color:var(--blue)">BLUE: <span id="finalBlue">0</span></div>
             </div>
 
-            <button class="btn-opt" style="width:100%; background:var(--gold); color:#263238; border:none; box-shadow: 0 5px 0 #f57f17;" onclick="saveAndReset()">
-                <i class="fa-solid fa-rotate-right"></i> LƯU KẾT QUẢ & CHƠI LẠI
-            </button>
+            <button class="btn-opt" 
+    style="width:100%; background: #27ae60; color: white; border: none; border-radius: 8px; box-shadow: 0 4px 0 #1e8449; padding: 12px; font-weight: bold; cursor: pointer; transition: transform 0.1s;" 
+    onclick="saveAndReset()"
+    onmousedown="this.style.transform='translateY(4px)'; this.style.boxShadow='none'"
+    onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 0 #1e8449'">
+    
+    <i class="fa-solid fa-floppy-disk"></i> LƯU & VỀ TRANG CHỦ
+</button>
         </div>
     </div>
 <script>
@@ -523,30 +528,40 @@ function handleAnswer(isCorrect) {
         document.getElementById('endModal').classList.add('open');
     }
 
-    async function saveAndReset() {
-        try {
-            const user = auth.currentUser;
-            const emailToSave = user ? user.email : 'Test_Player';
-            const idToSave = user ? user.uid : 'guest_' + Math.floor(Math.random()*10000);
+async function saveAndReset() {
+    try {
+        const user = auth.currentUser;
+        const emailToSave = user ? user.email : 'Test_Player';
+        const idToSave = user ? user.uid : 'guest_' + Math.floor(Math.random() * 10000);
 
-            await db.collection('game_results').add({
-                kitId: urlId || 'unknown', 
-                kitTitle: state.kitTitle || 'Test', 
-                redScore: state.scores.red, 
-                blueScore: state.scores.blue,
-                winner: state.scores.red > state.scores.blue ? 'RED' : (state.scores.red < state.scores.blue ? 'BLUE' : 'DRAW'),
-                playedAt: new Date().toISOString(), 
-                playerEmail: emailToSave, 
-                playerId: idToSave
-            });
-            toast('Đã lưu kết quả!', 'success');
-            setTimeout(() => location.reload(), 1500);
-        } catch(e) {
-            console.error(e);
-            toast('Lỗi lưu kết quả! Vui lòng kiểm tra Firestore Rules nếu bạn đang test Guest.', 'error');
-            setTimeout(() => location.reload(), 2500);
-        }
+        // 1. Lưu vào Database
+        await db.collection('game_results').add({
+            kitId: urlId || 'unknown',
+            kitTitle: state.kitTitle || 'Test',
+            redScore: state.scores.red,
+            blueScore: state.scores.blue,
+            winner: state.scores.red > state.scores.blue ? 'RED' : (state.scores.red < state.scores.blue ? 'BLUE' : 'DRAW'),
+            playedAt: new Date().toISOString(),
+            playerEmail: emailToSave,
+            playerId: idToSave
+        });
+
+        // 2. Thông báo thành công
+        toast('Đã lưu kết quả! Đang chuyển trang...', 'success');
+
+        // 3. Chuyển hướng về main.html
+        // Bạn có thể thêm setTimeout nếu muốn người dùng kịp đọc thông báo toast trước khi chuyển
+        setTimeout(() => {
+            window.location.href = 'main.html';
+        }, 1000); // Chờ 1 giây rồi chuyển (hoặc xóa setTimeout để chuyển ngay lập tức)
+
+    } catch (e) {
+        console.error(e);
+        toast('Lỗi lưu kết quả! Vui lòng kiểm tra Firestore Rules.', 'error');
+        // Giữ nguyên logic reload nếu lỗi, hoặc xóa dòng dưới nếu không cần
+        setTimeout(() => location.reload(), 2500);
     }
+}
 // Hàm tìm "đường thoát" cho một cụm ô
     function hasLiberty(cluster) {
         for (let pos of cluster) {
