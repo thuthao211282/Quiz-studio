@@ -529,7 +529,7 @@
                     startedAt: new Date().toISOString()
                 }
             });
-            window.location.href = `game.html?id=${currentKitId}&mode=host`;
+            window.location.href = `Game.html?id=${currentKitId}&mode=host`;
         } catch (e) {
             showNotification("Lỗi khi tạo phòng: " + e.message, "error");
             btn.innerHTML = originalContent;
