@@ -576,8 +576,25 @@ async function saveAndReset() {
         }
         return false; // Bị bao vây hoàn toàn bởi địch, nước, núi hoặc viền map
     }
+// =========================================
+// 1. KHỞI TẠO ÂM THANH
+// =========================================
+const bgMusic = new Audio('happy-ukulele.mp3');
+bgMusic.loop = true;      // Lặp lại liên tục khi hết bài
+bgMusic.volume = 0.3;     // Mức âm lượng 30% (vừa đủ nghe, không bị ồn)
+let isMusicPlaying = false; 
 
-    // Hàm quyét và chiếm các ô địch bị bao vây
+// =========================================
+// 2. PHÁT NHẠC THÔNG MINH (TỰ BẬT KHI CHẠM MÀN HÌNH)
+// =========================================
+// Lệnh này sẽ lắng nghe cú click đầu tiên của người chơi vào trang web (vào map, vào ô, v.v.)
+document.body.addEventListener('click', function playMusicOnce() {
+    if (!isMusicPlaying) {
+        bgMusic.play().then(() => {
+            isMusicPlaying = true;
+        }).catch(err => console.log("Trình duyệt chặn autoplay:", err));
+    }
+}, { once: true }); // Lệnh { once: true } cực kỳ quan trọng: Nó giúp sự kiện này chỉ chạy đúng 1 lần rồi tự hủy, không làm nặng game.
     function captureSurroundedEnemies() {
         const enemy = state.turn === 'red' ? 'blue' : 'red';
         let visited = new Set();
