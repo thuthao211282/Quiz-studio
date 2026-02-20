@@ -6,114 +6,162 @@
 <title>Tài khoản | Quiz Studio</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
 <style>
-    /* --- PHẦN GIAO DIỆN ĐẸP (GLASSMORPHISM) --- */
+    /* =========================================
+       1. BỘ BIẾN MÀU GỐC (ĐỒNG BỘ NỀN SÁNG)
+    ========================================= */
     :root {
-        --primary: #4FACFE;
-        --secondary: #00F2FE;
-        --danger: #ff5e62;
+        --primary: #2563eb; 
+        --secondary: #60a5fa; 
+        --success: #00b09b; 
+        --danger: #ff5f6d;
+        --bg-color: #f8faff; 
+        --text-color: #2d3436;
+        --text-muted: #64748b;
     }
 
-    * { box-sizing: border-box; font-family: 'Be Vietnam Pro', sans-serif; }
+    /* Thêm transition mượt mà cho mọi element */
+    * { 
+        margin: 0; padding: 0; box-sizing: border-box; 
+        font-family: 'Be Vietnam Pro', sans-serif; 
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
 
+    /* Bỏ ảnh nền tối, dùng nền màu xám xanh nhạt của Dashboard */
+/* =========================================
+       THÊM HÌNH NỀN & LỚP PHỦ MỜ CHO BODY
+    ========================================= */
     body {
-        margin: 0; min-height: 100vh;
-        /* Hình nền đẹp */
-        background: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop') no-repeat center center fixed;
-        background-size: cover;
+        min-height: 100vh;
+        color: var(--text-color);
         display: flex; justify-content: center; align-items: center;
-        color: #fff;
+        padding: 20px;
+        
+        /* 1. Thêm link hình nền của bạn vào đây */
+        background: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1600&q=80') no-repeat center center fixed;
+        background-size: cover;
     }
 
-    /* Lớp phủ tối mờ để chữ dễ đọc */
+    /* 2. Thêm lớp phủ mờ (Blur) để Form trắng nổi bật lên, không bị rối mắt */
     body::before {
-        content: ""; position: fixed; inset: 0;
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(8px);
-        z-index: 0;
+        content: ''; position: fixed; inset: 0;
+        background: rgba(0, 15, 40, 0.4); /* Lớp mờ màu xanh đen nhạt */
+        backdrop-filter: blur(8px);       /* Hiệu ứng làm nhòe background */
+        z-index: -1;
+    }
+    /* =========================================
+       2. ANIMATION CHÍNH (HIỆU ỨNG BAY LÊN)
+    ========================================= */
+    @keyframes dashboardSlideUp {
+        0% { opacity: 0; transform: translateY(30px) scale(0.98); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
+    /* =========================================
+       3. CONTAINER (FORM PANEL NỀN TRẮNG)
+    ========================================= */
     .container {
-        position: relative; z-index: 1;
         width: 100%; max-width: 420px;
         padding: 40px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: white;
         border-radius: 24px;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-        backdrop-filter: blur(15px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05); /* Bóng đổ nhẹ nhàng */
         text-align: center;
+        animation: dashboardSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     }
 
     h1 {
         margin: 0 0 30px 0;
         font-size: 28px;
-        font-weight: 700;
-        background: linear-gradient(to right, var(--primary), var(--secondary));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
+        font-weight: 800;
+        color: var(--primary); /* Đổi sang màu xanh Primary cho hợp tone trắng */
     }
 
+    /* =========================================
+       4. INPUT GROUPS & LABELS
+    ========================================= */
     .input-group {
         margin-bottom: 20px;
         text-align: left;
     }
 
     label {
-        font-size: 14px; font-weight: 600; color: #e0e0e0;
+        font-size: 14px; font-weight: 600; color: var(--text-color);
         margin-bottom: 8px; display: block;
     }
 
+    /* Ô nhập liệu */
     input {
-        width: 100%; padding: 14px;
-        border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(0, 0, 0, 0.3);
-        color: white; font-size: 15px; outline: none; transition: 0.3s;
+        width: 100%; padding: 14px 18px;
+        border-radius: 12px; border: 2px solid #edf2f7;
+        background: #f8fafc;
+        color: var(--text-color); font-size: 15px; outline: none;
     }
 
+    input:hover { border-color: #cbd5e1; }
+    
+    /* Hiệu ứng nảy lên và phát sáng khi bấm vào ô input */
     input:focus {
-        border-color: var(--primary);
-        background: rgba(0, 0, 0, 0.5);
-        box-shadow: 0 0 15px rgba(79, 172, 254, 0.2);
+        background: white;
+        border-color: var(--secondary);
+        transform: translateY(-2px);
+        box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.2), 0 5px 15px rgba(0,0,0,0.05);
     }
 
-    /* Nút ẩn hiện pass */
+    /* Nút ẩn/hiện password (Con mắt) */
     .password-wrapper { position: relative; }
     .toggle-pass {
         position: absolute; right: 15px; top: 50%;
         transform: translateY(-50%);
-        cursor: pointer; color: #aaa;
+        cursor: pointer; color: var(--text-muted);
     }
-    .toggle-pass:hover { color: white; }
+    .toggle-pass:hover { 
+        color: var(--primary); 
+        transform: translateY(-50%) scale(1.15); /* Phóng to nhẹ khi hover */
+    }
 
-    /* Các nút bấm */
+    /* =========================================
+       5. NÚT BẤM (BUTTONS)
+    ========================================= */
     .btn {
         width: 100%; padding: 14px; border-radius: 12px;
-        border: none; font-size: 16px; font-weight: 600;
+        border: none; font-size: 16px; font-weight: 700;
         cursor: pointer; margin-top: 15px;
         display: flex; align-items: center; justify-content: center; gap: 10px;
-        transition: 0.3s; color: white;
     }
 
+    /* Nút Lưu / Xác nhận */
     .btn-save {
         background: linear-gradient(135deg, var(--primary), var(--secondary));
-        box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+        color: white;
+        box-shadow: 0 5px 15px rgba(37, 99, 235, 0.2);
     }
-    .btn-save:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(79, 172, 254, 0.6); }
+    .btn-save:hover { 
+        transform: translateY(-3px) scale(1.02); 
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4); 
+    }
+    .btn-save:active { transform: translateY(-1px) scale(0.98); }
 
+    /* Nút Xoá / Hủy */
     .btn-delete {
-        background: rgba(255, 94, 98, 0.2);
-        color: #ff999c; border: 1px solid rgba(255, 94, 98, 0.3);
+        background: #fff1f2;
+        color: var(--danger); 
     }
-    .btn-delete:hover { background: rgba(255, 94, 98, 0.4); color: white; }
+    .btn-delete:hover { 
+        background: var(--danger); color: white; 
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 5px 15px rgba(255, 95, 109, 0.3);
+    }
 
+    /* Nút Quay lại */
     .btn-back {
-        background: transparent; color: #ccc; margin-top: 5px;
+        background: transparent; color: var(--text-muted); margin-top: 5px;
     }
-    .btn-back:hover { color: white; }
-
+    .btn-back:hover { 
+        color: var(--primary); 
+        background: #f1f5f9;
+        transform: translateY(-2px);
+    }
 </style>
 </head>
 <body>
