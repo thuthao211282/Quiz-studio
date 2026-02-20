@@ -12,52 +12,156 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
-    <style>
-        :root {
-            --primary: #2563eb; --secondary: #60a5fa; --success: #00b09b; --danger: #ff5f6d;
-            --bg-color: #f8faff; --text-color: #2d3436;
-            --red-team: #e53935; --blue-team: #1e88e5;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Be Vietnam Pro', sans-serif; }
-        
-        body { background: var(--bg-color); color: var(--text-color); padding: 20px; }
+<style>
+    /* =========================================
+       1. BỘ BIẾN MÀU GỐC
+    ========================================= */
+    :root {
+        --primary: #2563eb; 
+        --secondary: #60a5fa; 
+        --success: #00b09b; 
+        --danger: #ff5f6d;
+        --text-color: #2d3436;
+        --red-team: #e53935; 
+        --blue-team: #1e88e5;
+    }
 
-        .container { max-width: 1200px; margin: 0 auto; }
-        
-        /* HEADER */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .btn-back { text-decoration: none; color: #666; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
-        .btn-back:hover { color: var(--primary); transform: translateX(-5px); }
-        
-        /* CARDS */
-        .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
-        .stat-num { font-size: 2rem; font-weight: 800; color: var(--primary); display: block; margin-top: 10px; }
-        
-        /* FILTER & ACTIONS */
-        .action-bar { background: white; padding: 20px; border-radius: 15px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        select { padding: 10px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; flex: 1; outline: none; }
-        .btn-export { background: #10ac84; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        .btn-export:hover { background: #0d8a6a; }
+    * { 
+        margin: 0; padding: 0; box-sizing: border-box; 
+        font-family: 'Be Vietnam Pro', sans-serif; 
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    
+    /* =========================================
+       2. HÌNH NỀN VÀ LỚP PHỦ MỜ (BODY)
+    ========================================= */
+    body { 
+        min-height: 100vh; color: var(--text-color); 
+        padding: 40px 20px; 
+        background: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1600&q=80') no-repeat center center fixed;
+        background-size: cover;
+    }
 
-        /* TABLE */
-        .table-container { overflow-x: auto; background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
-        th, td { padding: 15px 20px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #f1f5f9; font-weight: 700; color: #475569; }
-        tr:hover { background: #f8faff; }
-        
-        .score-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; }
-        .win-red { background: #ffebee; color: var(--red-team); border: 1px solid var(--red-team); }
-        .win-blue { background: #e3f2fd; color: var(--blue-team); border: 1px solid var(--blue-team); }
-        .draw { background: #eceff1; color: #607d8b; }
+    body::before {
+        content: ''; position: fixed; inset: 0;
+        background: rgba(0, 15, 40, 0.4);
+        backdrop-filter: blur(8px); 
+        z-index: -1;
+    }
 
-        .btn-del { color: var(--danger); background: none; border: none; cursor: pointer; font-size: 1.1rem; transition: 0.2s; }
-        .btn-del:hover { transform: scale(1.2); }
+    @keyframes dashboardSlideUp {
+        0% { opacity: 0; transform: translateY(30px) scale(0.98); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
 
-        #loading { text-align: center; padding: 50px; font-size: 1.2rem; color: #666; }
-    </style>
-</head>
+    /* =========================================
+       3. CONTAINER CHÍNH (BẢNG TRẮNG LIỀN MẠCH)
+    ========================================= */
+    .container { 
+        max-width: 1200px; margin: 0 auto; position: relative; z-index: 1;
+        /* Biến Container thành 1 khối trắng duy nhất bao trọn mọi thứ */
+        background: white; 
+        padding: 40px; 
+        border-radius: 24px; 
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        animation: dashboardSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    /* =========================================
+       4. HEADER (NẰM TRONG BẢNG TRẮNG)
+    ========================================= */
+    .header { 
+        display: flex; justify-content: space-between; align-items: center; 
+        margin-bottom: 30px; 
+        padding-bottom: 20px;
+        border-bottom: 2px dashed #f1f5f9; /* Đường kẻ gạch ngang phân cách nhẹ nhàng */
+    }
+    .header h1, .header h2 { margin: 0; color: var(--primary); font-weight: 800; font-size: 1.8rem; }
+    
+    .btn-back { 
+        text-decoration: none; color: #64748b; font-weight: 600; 
+        display: inline-flex; align-items: center; gap: 8px; 
+        padding: 10px 15px; border-radius: 12px; 
+        background: #f8fafc; border: 1px solid #edf2f7;
+    }
+    .btn-back:hover { 
+        color: white; background: var(--primary); 
+        transform: translateX(-5px); box-shadow: 0 5px 15px rgba(37, 99, 235, 0.2); 
+    }
+    
+    /* =========================================
+       5. CARDS SỐ LIỆU (NHÚNG PHẲNG VÀO NỀN)
+    ========================================= */
+    .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    
+    .stat-card { 
+        /* Đổi thành nền xám cực nhạt để phân biệt khối dữ liệu, không đổ bóng */
+        background: #f8fafc; padding: 20px; border-radius: 16px; 
+        text-align: center; border: 1px solid #edf2f7;
+    }
+    .stat-card:hover { transform: translateY(-5px); border-color: #cbd5e1; background: white; box-shadow: 0 10px 20px rgba(0,0,0,0.03); }
+    .stat-num { font-size: 2.2rem; font-weight: 800; color: var(--primary); display: block; margin-top: 5px; }
+    
+    /* =========================================
+       6. THANH CÔNG CỤ (FILTER & EXPORT)
+    ========================================= */
+    .action-bar { 
+        display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 25px; 
+        background: #f8fafc; padding: 15px 20px; border-radius: 16px; border: 1px solid #edf2f7;
+    }
+
+    select { 
+        padding: 12px 18px; border: 2px solid transparent; border-radius: 10px; 
+        font-size: 1rem; flex: 1; outline: none; cursor: pointer;
+        background: white; color: var(--text-color); box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+    select:focus { 
+        border-color: var(--secondary); transform: translateY(-2px);
+        box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.2), 0 5px 15px rgba(0,0,0,0.05);
+    }
+
+    .btn-export { 
+        background: linear-gradient(135deg, var(--success), #028f7e); color: white; border: none; 
+        padding: 12px 24px; border-radius: 10px; cursor: pointer; font-weight: 700; 
+        display: flex; align-items: center; gap: 8px; font-size: 1rem;
+        box-shadow: 0 4px 10px rgba(0, 176, 155, 0.2);
+    }
+    .btn-export:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 8px 15px rgba(0, 176, 155, 0.4); }
+
+    /* =========================================
+       7. BẢNG DỮ LIỆU
+    ========================================= */
+    .table-container { overflow-x: auto; border-radius: 16px; border: 1px solid #edf2f7; }
+    table { width: 100%; border-collapse: collapse; min-width: 800px; background: white; }
+    th, td { padding: 16px 20px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+    th { background: #f8fafc; font-weight: 700; color: #475569; text-transform: uppercase; font-size: 0.9rem; }
+    
+    tr { transition: 0.2s; }
+    tr:hover { background: #f0f7ff; }
+    
+    .score-badge { display: inline-block; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; }
+    .win-red { background: #ffebee; color: var(--red-team); border: 1px solid rgba(229, 57, 53, 0.2); }
+    .win-blue { background: #e3f2fd; color: var(--blue-team); border: 1px solid rgba(30, 136, 229, 0.2); }
+    .draw { background: #eceff1; color: #607d8b; border: 1px solid rgba(96, 125, 139, 0.2); }
+
+    .btn-del { 
+        color: var(--danger); background: #fff1f2; border: none; cursor: pointer; 
+        font-size: 1.1rem; width: 36px; height: 36px; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .btn-del:hover { background: var(--danger); color: white; transform: scale(1.15) rotate(15deg); box-shadow: 0 5px 15px rgba(255, 95, 109, 0.3); }
+
+    #loading { text-align: center; padding: 50px; font-size: 1.2rem; color: #666; font-weight: 600; }
+
+    /* =========================================
+       8. RESPONSIVE (MÀN HÌNH NHỎ)
+    ========================================= */
+    @media (max-width: 768px) {
+        .container { padding: 20px; }
+        .header h1, .header h2 { font-size: 1.4rem; }
+        .stats-summary { grid-template-columns: 1fr; }
+    }
+</style></head>
 <body>
 
 <div class="container">
@@ -87,7 +191,7 @@
     <div class="action-bar">
         <i class="fa-solid fa-filter" style="color: #666;"></i>
         <select id="quiz-filter" onchange="filterData()">
-            <option value="all">Tất cả bản đồ</option>
+            <option value="all">Tất cả bộ câu hỏi</option>
         </select>
         <button class="btn-export" onclick="exportToExcel()">
             <i class="fa-solid fa-file-excel"></i> Xuất Excel
@@ -137,7 +241,7 @@
                         <b style="font-size: 1.2rem;">Truy cập bị từ chối!</b><br>
                         Bạn chưa đăng nhập. Vui lòng quay lại trang chủ và đăng nhập tài khoản Admin để xem thống kê.
                     </div>
-                    <a href="main.html" style="background: var(--primary); color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                    <a href="login.html" style="background: var(--primary); color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
                         <i class="fa-solid fa-right-to-bracket"></i> Đi đến trang Đăng nhập
                     </a>
                 `;
