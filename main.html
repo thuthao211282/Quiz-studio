@@ -168,7 +168,7 @@
         .btn-delete:hover,
         .btn-review:hover {
             /* translateY: nảy lên, scale: phóng to, rotate: xoay (5 độ) */
-            transform: translateY(-5px) scale(1.15) rotate(30deg);
+            transform: translateY(-5px) scale(1.15) rotate(20deg);
         }
 
         /* Giữ màu sắc riêng biệt khi hover cho từng nút */
@@ -187,10 +187,13 @@
             box-shadow: 0 8px 20px rgba(255, 71, 87, 0.4);
         }
 
-        .btn-review:hover { 
-            background: var(--success); color: white; 
-            box-shadow: 0 8px 20px rgba(0, 176, 155, 0.4);
-        }
+    .btn-review:hover { 
+        background: var(--success); 
+        color: white; 
+        box-shadow: 0 8px 20px rgba(0, 176, 155, 0.4);
+        /* Ép buộc nút phải nảy lên, phóng to và xoay */
+        transform: translateY(-5px) scale(1.15) rotate(20deg) !important;
+    }
 
         /* --- MODAL ANIMATION & STYLE --- */
         .my-modal {
