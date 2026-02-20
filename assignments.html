@@ -11,16 +11,30 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-    <style>
+<style>
+        /* =========================================
+           1. BỘ BIẾN MÀU (ĐỒNG BỘ TỪ DASHBOARD)
+        ========================================= */
         :root {
-            --primary: #007bff; --secondary: #00b4ff; --success: #28a745; --danger: #dc3545;
-            --glass-bg: rgba(255, 255, 255, 0.7); 
-            --glass-border: rgba(255, 255, 255, 0.5);
-            --text-dark: #1a1a1a;
+            --primary: #2563eb;       /* Xanh dương đậm */
+            --secondary: #60a5fa;     /* Xanh dương nhạt */
+            --accent: #ff6b6b;
+            --success: #00b09b;       /* Xanh ngọc mượt */
+            --danger: #ff5f6d;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --text-dark: #2d3436;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Be Vietnam Pro', sans-serif; }
-        
+        /* =========================================
+           2. CẤU HÌNH CƠ BẢN & ANIMATION CHUNG
+        ========================================= */
+        * { 
+            margin: 0; padding: 0; box-sizing: border-box; 
+            font-family: 'Be Vietnam Pro', sans-serif; 
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
         body {
             min-height: 100vh;
             background: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1600&q=80') no-repeat center center fixed;
@@ -30,312 +44,225 @@
 
         body::before {
             content: ''; position: fixed; inset: 0;
-            background: rgba(0, 15, 40, 0.45); backdrop-filter: blur(8px); z-index: -1;
+            background: rgba(0, 15, 40, 0.4);
+            backdrop-filter: blur(8px); 
+            z-index: -1;
+        }
+
+        /* Hiệu ứng bay lên */
+        @keyframes dashboardSlideUp {
+            0% { opacity: 0; transform: translateY(40px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .container { width: 100%; max-width: 1000px; z-index: 1; }
+
+        /* =========================================
+           3. GIAO DIỆN KÍNH MỜ (HEADER & CARD)
+        ========================================= */
         header {
             display: flex; justify-content: space-between; align-items: center;
-            background: var(--glass-bg); padding: 25px 30px; border-radius: 20px;
+            background: var(--glass-bg); padding: 25px 30px; border-radius: 30px;
             border: 1px solid var(--glass-border); margin-bottom: 25px;
-            backdrop-filter: blur(15px); box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            animation: dashboardSlideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
 
         .card {
             background: var(--glass-bg); border: 1px solid var(--glass-border);
-            border-radius: 24px; padding: 25px; margin-bottom: 25px;
-            backdrop-filter: blur(15px); box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border-radius: 30px; padding: 35px; margin-bottom: 25px;
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            animation: dashboardSlideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            animation-delay: 0.1s; opacity: 0;
         }
-.card:hover {
-   /* 1. Đẩy khung lên trên 5px tạo cảm giác bay lên */
-    transform: translateY(-5px) scale(1.01); 
-    
-    /* 2. Tăng độ đậm của bóng đổ để tạo chiều sâu */
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); 
-    
-    /* 3. Làm sáng nền và viền một chút */
-    background: rgba(255, 255, 255, 0.8);
-    border-color: rgba(255, 255, 255, 0.5);
-}
 
-        /* Định dạng chung cho Input */
+        /* Hover khối kính */
+        header:hover, .card:hover, .preview-card:hover {
+            transform: translateY(-5px) scale(1.01); 
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15); 
+            background: rgba(255, 255, 255, 0.95);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* =========================================
+           4. FORM & INPUT
+        ========================================= */
         input, textarea {
-            width: 100%; padding: 12px; border-radius: 12px;
-            border: 1px solid rgba(0,0,0,0.1); 
+            width: 100%; padding: 14px; border-radius: 15px;
+            border: 2px solid transparent; 
             background: rgba(255,255,255,0.7); 
             color: var(--text-dark); font-size: 15px; outline: none; transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03);
         }
-        input:focus, textarea:focus { background: #fff; border-color: var(--primary); }
 
-        /* --- SỬA LỖI THỤT DÒNG Ở ĐÂY --- */
+        input:focus, textarea:focus { 
+            background: #ffffff !important; 
+            transform: translateY(-2px);
+            border-color: var(--secondary);
+            /* Focus ring màu đồng bộ */
+            box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.2), 0 5px 20px rgba(37, 99, 235, 0.1);
+        }
+
         .input-group { 
-            display: flex; 
-            gap: 10px; 
-            align-items: flex-start; /* Canh lề trên */
-            margin-top: 8px; 
-            width: 100%;
+            display: flex; gap: 15px; align-items: flex-start; 
+            margin-top: 15px; width: 100%;
         }
 
-        /* Quan trọng: Input trong group sẽ tự co giãn, không chiếm 100% cứng nữa */
-        .input-group input, 
-        .input-group textarea {
-            flex: 1; 
-            width: auto; 
+        .input-group input, .input-group textarea {
+            flex: 1; width: auto; 
         }
 
-        .btn-plus {
-            width: 45px; height: 45px; border-radius: 12px; background: #fff;
-            color: var(--primary); border: 1px solid #ddd; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; transition: 0.3s;
-            flex-shrink: 0; /* Quan trọng: Không cho phép nút bị co lại */
-        }
-        .btn-plus:hover { background: var(--primary); color: #fff; transform: scale(1.05); }
-
+        /* =========================================
+           5. HỆ THỐNG NÚT BẤM (BUTTONS)
+        ========================================= */
         button {
-            padding: 12px 20px; border-radius: 12px; border: none; cursor: pointer;
-            font-weight: 600; transition: 0.3s; display: flex; align-items: center; gap: 8px;
+            padding: 12px 22px; border-radius: 15px; border: none; cursor: pointer;
+            font-weight: 700; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px;
             color: white; background: linear-gradient(135deg, var(--primary), var(--secondary));
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.2);
+            position: relative; overflow: hidden; font-size: 1rem;
         }
 
-        .choice-item { display: flex; align-items: center; gap: 10px; margin-top: 15px; }
-        .choice-circle {
-            width: 38px; height: 38px; border-radius: 50%; border: 2px solid #aaa;
-            display: flex; align-items: center; justify-content: center; cursor: pointer; 
-            font-weight: bold; background: #fff; color: #777; transition: 0.2s; flex-shrink: 0;
+        button:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 12px 25px rgba(37, 99, 235, 0.4); 
         }
+
+        button:active { transform: translateY(-1px) scale(0.98); }
+
+        /* Nút phụ (Trắng) */
+        header button[onclick*="main.html"]:hover,
+        #btnToggleManual:hover, 
+        #btnToggleManual + button:hover {
+             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+             background: white !important;
+             color: var(--primary) !important;
+        }
+
+        /* Nút cộng (+) */
+        .btn-plus {
+            width: 48px; height: 48px; border-radius: 15px; background: #f8fafc;
+            color: var(--primary); border: 2px solid transparent; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.05); font-size: 1.2rem;
+            transition: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .btn-plus:hover { 
+            transform: rotate(90deg) scale(1.1); 
+            background: var(--primary); color: white; 
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4); 
+        }
+        .btn-plus:active { transform: rotate(90deg) scale(0.9); }
+
+        /* Nút sửa nhỏ ở Preview */
+        .btn-edit-preview {
+            background: var(--primary); color: white; font-size: 12px;
+            padding: 8px 16px; border-radius: 10px; margin-right: 8px; 
+            display: inline-flex; align-items: center; gap: 5px; font-weight: 600;
+        }
+        .btn-edit-preview:hover {
+            background: var(--secondary); box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
+        }
+
+        /* =========================================
+           6. TRẮC NGHIỆM (LỰA CHỌN A B C D)
+        ========================================= */
+        .choice-item { display: flex; align-items: center; gap: 15px; margin-top: 15px; }
+        
+        .choice-circle {
+            width: 42px; height: 42px; border-radius: 50%; border: 2px solid #cbd5e1;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; 
+            font-weight: 700; background: #fff; color: #64748b; flex-shrink: 0;
+            transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); font-size: 1.1rem;
+        }
+
+        /* Hover khi chưa chọn */
+        .choice-item:not(.correct) .choice-circle:hover {
+            transform: scale(1.15); border-color: var(--primary); color: var(--primary);
+            box-shadow: 0 0 15px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Animation khi Click Chọn đúng */
+        @keyframes pulseSuccess {
+            0% { box-shadow: 0 0 0 0 rgba(0, 176, 155, 0.6); }
+            70% { box-shadow: 0 0 0 15px rgba(0, 176, 155, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 176, 155, 0); }
+        }
+
         .choice-item.correct .choice-circle { 
             background: var(--success); border-color: var(--success); color: white; 
+            transform: scale(1.05);
+            animation: pulseSuccess 0.6s ease-out forwards;
         }
 
-        /* PANEL REVIEW ĐỒNG BỘ */
-        /* --- CSS CHO PANEL CÂU HỎI --- */
-.preview-card {
-    background: var(--glass-bg); /* Nền mờ nhẹ */
-    border: 1px solid var(--glass-border); /* Viền mỏng */
-    border-radius: 24px; /* Bo góc tròn trịa */
-    padding: 25px;
-    margin-bottom: 25px;
-    color: white;
-    
-    /* QUAN TRỌNG: Tạo độ mượt khi thay đổi trạng thái */
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    
-    /* Bóng đổ mặc định (nhẹ) */
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-}
+        /* =========================================
+           7. PANEL XEM TRƯỚC (PREVIEW CARD)
+        ========================================= */
+        #previewList {
+            animation: dashboardSlideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            animation-delay: 0.2s; opacity: 0;
+        }
 
-/* --- HIỆU ỨNG KHI HOVER (DI CHUỘT VÀO) --- */
-.preview-card:hover {
-    /* 1. Đẩy khung lên trên 5px tạo cảm giác bay lên */
-    transform: translateY(-5px) scale(1.01); 
-    
-    /* 2. Tăng độ đậm của bóng đổ để tạo chiều sâu */
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); 
-    
-    /* 3. Làm sáng nền và viền một chút */
-    background: rgba(255, 255, 255, 0.8);
-    border-color: rgba(255, 255, 255, 0.5);
-}
-        .preview-q-text { font-size: 1.1rem; font-weight: 700; color: var(--text-dark); margin-bottom: 12px; }
+        .preview-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 24px; padding: 30px; margin-bottom: 25px;
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border-left: 6px solid transparent; /* Chuẩn bị cho hover */
+        }
+
+        .preview-card:hover {
+            border-left-color: var(--secondary);
+            transform: translateY(-5px) scale(1.01);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .preview-q-text { font-size: 1.15rem; font-weight: 700; color: var(--text-dark); margin-bottom: 15px; }
         
         .preview-choice-item {
-            background: rgba(255, 255, 255, 0.4); 
-            padding: 10px 15px; border-radius: 10px; font-size: 0.95rem;
-            margin-top: 8px; border: 1px solid rgba(255,255,255,0.3);
-            display: flex; align-items: center; gap: 10px; color: #333;
+            background: rgba(255, 255, 255, 0.6); 
+            padding: 12px 18px; border-radius: 12px; font-size: 1rem;
+            margin-top: 10px; border: 1px solid rgba(0,0,0,0.05);
+            display: flex; align-items: center; gap: 10px; color: #475569; font-weight: 500;
         }
+        
+        .preview-choice-item:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateX(5px); box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+
         .preview-choice-item.is-correct { 
-            background: rgba(40, 167, 69, 0.15); 
-            border-color: var(--success); color: var(--success); font-weight: 600; 
+            background: rgba(0, 176, 155, 0.1); /* Màu success của dashboard */
+            border-color: rgba(0, 176, 155, 0.3); color: var(--success); font-weight: 700; 
         }
 
         .media-tag {
-            font-size: 0.75rem; background: var(--primary); color: white; 
-            padding: 3px 10px; border-radius: 6px; margin-top: 5px; display: inline-block;
+            font-size: 0.75rem; font-weight: 600; background: var(--secondary); color: white; 
+            padding: 4px 12px; border-radius: 8px; margin-top: 8px; display: inline-block;
         }
 
-        /* Modal */
+        /* =========================================
+           8. MODAL THÔNG BÁO
+        ========================================= */
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
         .my-modal {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
             display: none; justify-content: center; align-items: center; z-index: 9999;
             backdrop-filter: blur(8px);
         }
+
         .modal-box {
-            background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 25px; 
-            width: 90%; max-width: 400px; text-align: center;
+            background: white; padding: 40px; border-radius: 30px; 
+            width: 90%; max-width: 450px; text-align: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            animation: modalFadeIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
-/* Thêm vào trong thẻ <style> */
-.btn-edit-preview {
-    background: var(--primary); /* Màu xanh */
-    color: white;
-    font-size: 12px;
-    padding: 6px 15px;
-    border-radius: 8px;
-    margin-right: 8px; /* Cách nút xóa ra một chút */
-    display: inline-flex; align-items: center; gap: 5px;
-}
-.btn-edit-preview:hover {
-    background: var(--secondary);
-    box-shadow: 0 4px 10px rgba(0,123,255,0.3);
-}
-/* =========================================
-   ANIMATION NÂNG CAO CHO GIAO DIỆN GLASS
-   (Dán đoạn này vào cuối thẻ <style>)
-========================================= */
-
-/* 1. CẤU HÌNH CHUYỂN ĐỘNG MƯỢT (EASING) */
-/* Sử dụng cubic-bezier để tạo cảm giác vật lý, có độ nảy nhẹ */
-* {
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-/* 2. HIỆU ỨNG CHO CÁC KHỐI CARD VÀ HEADER */
-/* Khi di chuột vào, khối kính sẽ nổi lên cao hơn và bóng đổ sâu hơn */
-header:hover, .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-    /* Tăng nhẹ độ mờ và độ sáng để tạo cảm giác "đến gần hơn" */
-    backdrop-filter: blur(18px);
-    border-color: rgba(255, 255, 255, 0.8);
-}
-
-/* 3. HIỆU ỨNG CHO NÚT BẤM CHÍNH (Gradient Buttons) */
-button {
-    position: relative;
-    overflow: hidden; /* Để chứa hiệu ứng ripple nếu cần */
-}
-
-/* Hover: Nổi lên, phóng to nhẹ và phát sáng */
-button:hover {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 10px 25px -5px rgba(0, 123, 255, 0.5); /* Bóng màu xanh */
-}
-
-/* Click (Active): Cảm giác bị nhấn xuống */
-button:active {
-    transform: translateY(-1px) scale(0.98);
-    box-shadow: 0 5px 10px -3px rgba(0, 123, 255, 0.3);
-}
-
-/* 4. HIỆU ỨNG CHO NÚT TRẮNG (Vd: Nút Home) */
-/* Cần ghi đè hiệu ứng bóng của nút chính */
-header button[onclick*="main.html"]:hover,
-#btnToggleManual:hover, 
-#btnToggleManual + button:hover {
-     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
-     background: white !important;
-     color: var(--primary) !important;
-}
-
-/* 5. HIỆU ỨNG NÚT DẤU CỘNG (BTN-PLUS) - Rất thú vị! */
-.btn-plus {
-    transition: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); /* Độ nảy mạnh hơn */
-}
-.btn-plus:hover {
-    /* Xoay 90 độ và phóng to khi hover */
-    transform: rotate(90deg) scale(1.1);
-    background: var(--primary);
-    color: white;
-    box-shadow: 0 0 20px rgba(0, 123, 255, 0.4); /* Phát sáng xung quanh */
-}
-.btn-plus:active {
-    transform: rotate(90deg) scale(0.9); /* Thu nhỏ khi click */
-}
-
-/* 6. HIỆU ỨNG INPUT VÀ TEXTAREA KHI NHẬP LIỆU */
-input:focus, textarea:focus {
-    background: #ffffff !important; /* Trắng hoàn toàn */
-    transform: translateY(-2px); /* Nổi lên nhẹ */
-    border-color: var(--primary);
-    /* Tạo vòng sáng (Focus ring) xung quanh */
-    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.15);
-}
-
-/* 7. HIỆU ỨNG CHO NÚT CHỌN ĐÁP ÁN (A, B, C, D) */
-.choice-circle {
-    transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-/* Khi chưa chọn mà hover vào */
-.choice-item:not(.correct) .choice-circle:hover {
-    transform: scale(1.15);
-    border-color: var(--primary);
-    color: var(--primary);
-    box-shadow: 0 0 15px rgba(0, 123, 255, 0.2);
-}
-/* Khi Click chọn (Hiệu ứng "Pulse" - Nhịp đập) */
-@keyframes pulseSuccess {
-    0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.6); }
-    70% { box-shadow: 0 0 0 12px rgba(40, 167, 69, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
-}
-.choice-item.correct .choice-circle {
-    transform: scale(1.05);
-    /* Chạy animation nhịp đập 1 lần khi được chọn */
-    animation: pulseSuccess 0.6s ease-out forwards;
-}
-
-/* 8. HIỆU ỨNG CHO PANEL REVIEW (Danh sách xem trước) */
-.preview-card:hover {
-    transform: translateY(-5px) scale(1.01);
-    background: rgba(255, 255, 255, 0.75); /* Sáng hơn một chút */
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    /* Đường viền bên trái dày hơn và sáng hơn */
-    border-left-width: 8px; 
-    border-left-color: var(--secondary); 
-}
-
-/* Hiệu ứng cho các đáp án trong preview khi hover */
-.preview-choice-item:hover {
-    background: rgba(255, 255, 255, 0.6);
-    transform: translateX(5px); /* Dịch sang phải nhẹ */
-}
-
-/* 9. HIỆU ỨNG MODAL XUẤT HIỆN (Mượt mà hơn) */
-@keyframes modalFadeIn {
-    from { opacity: 0; transform: translateY(-20px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-/* 1. Định nghĩa chuyển động bay từ dưới lên */
-@keyframes dashboardSlideUp {
-    0% {
-        opacity: 0;
-        transform: translateY(40px) scale(0.98);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-.modal-box {
-    /* Áp dụng animation khi modal hiện lên */
-    animation: modalFadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.container {
-    /* Chạy animation trong 0.8s với nhịp điệu mượt (cubic-bezier) */
-    animation: dashboardSlideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-header {
-    animation: dashboardSlideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-    animation-delay: 0.1s; /* Chậm 0.1s */
-    opacity: 0; /* Ẩn đi chờ animation chạy */
-    animation-fill-mode: forwards; /* Giữ trạng thái cuối cùng */
-}
-
-/* Card thiết lập hiện sau */
-.card {
-    animation: dashboardSlideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-    animation-delay: 0.2s; /* Chậm 0.2s */
-    opacity: 0;
-    animation-fill-mode: forwards;
-}
-
-/* Danh sách review hiện sau cùng */
-#previewList {
-    animation: dashboardSlideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-    animation-delay: 0.3s;
-    opacity: 0;
-    animation-fill-mode: forwards;
-}
     </style>
 </head>
 <body>
